@@ -29,8 +29,6 @@ spring:
             google-search-retrieval: true
             max-output-tokens: 300
             include-server-side-tool-invocations: true
-        # Embedding has its OWN connection properties (separate @ConfigurationProperties
-        # under spring.ai.google.genai.embedding) — it does NOT inherit the chat api-key.
         embedding:
           api-key: "${GEMINI_API_KEY}"
           text:

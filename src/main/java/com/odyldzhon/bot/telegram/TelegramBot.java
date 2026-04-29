@@ -172,13 +172,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                             Before answering, use your database tools to inspect recent chat history so you do not
                             answer out of context.
 
-                            Required lookup:
-                            - Call executeSelectQuery with a SELECT similar to:
-                              SELECT created_at, author, message
-                              FROM chat_message
-                              ORDER BY created_at DESC
-                              LIMIT 60
-                            - Do not select the embedding column.
+                            - Do not select the embedding column unless you need it.
                             - Treat the newest rows as context, but answer the current message below.
 
                             Author: @%s
