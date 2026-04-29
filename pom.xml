@@ -10,7 +10,7 @@
 
   <groupId>com.odyldzhon</groupId>
   <artifactId>bot</artifactId>
-  <version>1.0.0</version>
+  <version>2.0.0</version>
 
   <properties>
     <java.version>21</java.version>
@@ -130,7 +130,8 @@
           </gitFlowConfig>
           <skipTestProject>true</skipTestProject>
           <keepBranch>false</keepBranch>
-          <pushRemote>true</pushRemote>
+	  <pushRemote>true</pushRemote>
+	  <versionDigitToIncrement>0</versionDigitToIncrement>
           <commitMessages>
             <featureStartMessage>Update versions for feature branch</featureStartMessage>
             <featureFinishMessage>Update versions for development branch</featureFinishMessage>
