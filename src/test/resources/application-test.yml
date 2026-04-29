@@ -1,0 +1,25 @@
+bot:
+  username: test_bot
+  token: 123456:test-token
+  name: Lebowski
+  language: English
+  ai-trigger:
+    enabled: false
+    chat-id: "42"
+    history-window: PT30M
+    min-delay: PT1M
+    max-delay: PT1M
+    max-history-messages: 30
+    time-zone: Europe/Sofia
+
+spring:
+  main:
+    web-application-type: none
+  ai:
+    google:
+      genai:
+        api-key: test-key
+        chat:
+          options:
+            google-search-retrieval: true
+

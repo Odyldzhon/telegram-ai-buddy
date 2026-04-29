@@ -1,0 +1,85 @@
+# Run from this folder. Easiest is via the helper scripts (Bash / Git Bash):
+#   ./up.sh           – build & start in background
+#   ./stop.sh         – stop containers, keep state
+#   ./down.sh         – remove containers (volume kept; pass --volumes to wipe)
+#   ./logs.sh app     – tail logs (optionally for a specific service)
+#   ./restart-app.sh  – rebuild + restart only the app
+#
+# Or invoke compose directly:
+#   docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --build
+#
+# Postgres deliberately exposes NO host port – it is only reachable from
+# other services on the internal `botnet` bridge network (i.e. the app).
+
+name: bot
+
+services:
+
+  postgres:
+    image: pgvector/pgvector:pg17        # Postgres 17 + pgvector extension
+    container_name: bot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${DB_NAME}
+      POSTGRES_USER:     ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../../src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    networks:
+      - botnet
+    # NOTE: no `ports:` block on purpose – the DB is private to the compose
+    # network. `expose` documents the internal port without publishing it.
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build:
+      context: ../..              # project root, so Maven sees pom.xml & src/
+      dockerfile: infra/docker/Dockerfile
+    image: bot-app:latest
+    container_name: bot-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # ── Telegram ────────────────────────────────────────────────────────
+      BOT_USERNAME:   ${BOT_USERNAME}
+      BOT_TOKEN:      ${BOT_TOKEN}
+      BOT_NAME:       ${BOT_NAME}
+      BOT_LANGUAGE:   ${BOT_LANGUAGE}
+      # ── Gemini ──────────────────────────────────────────────────────────
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      # ── Proactive AI trigger ────────────────────────────────────────────
+      BOT_AI_TRIGGER_ENABLED:              ${BOT_AI_TRIGGER_ENABLED}
+      BOT_AI_TRIGGER_CHAT_ID:              ${BOT_AI_TRIGGER_CHAT_ID}
+      BOT_AI_TRIGGER_HISTORY_WINDOW:       ${BOT_AI_TRIGGER_HISTORY_WINDOW}
+      BOT_AI_TRIGGER_MIN_DELAY:            ${BOT_AI_TRIGGER_MIN_DELAY}
+      BOT_AI_TRIGGER_MAX_DELAY:            ${BOT_AI_TRIGGER_MAX_DELAY}
+      BOT_AI_TRIGGER_MAX_HISTORY_MESSAGES: ${BOT_AI_TRIGGER_MAX_HISTORY_MESSAGES}
+      BOT_AI_TRIGGER_TIME_ZONE:            ${BOT_AI_TRIGGER_TIME_ZONE}
+      # ── Database (resolved by Spring via application.yml) ───────────────
+      DB_HOST:     postgres        # docker-internal DNS name
+      DB_PORT:     "5432"
+      DB_NAME:     ${DB_NAME}
+      DB_USER:     ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JAVA_OPTS:   ${JAVA_OPTS}
+    networks:
+      - botnet
+
+networks:
+  botnet:
+    driver: bridge
+
+volumes:
+  pgdata:
+
+
+

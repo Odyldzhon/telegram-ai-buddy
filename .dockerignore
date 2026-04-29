@@ -1,0 +1,12 @@
+# Used by Docker Compose to optimise build context (similar to .gitignore).
+# Keep the image small and the build cache stable.
+.git
+.gitignore
+.idea
+*.iml
+target/
+build/
+out/
+infra/
+.env
+

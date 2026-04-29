@@ -1,0 +1,57 @@
+# ─── Telegram Bot ────────────────────────────────────────────────────────────
+bot:
+  username: "${BOT_USERNAME}"
+  token: "${BOT_TOKEN}"
+  name: "${BOT_NAME}"
+  language: "${BOT_LANGUAGE}"
+
+  # Random proactive comments. If BOT_AI_TRIGGER_CHAT_ID is empty, the bot uses
+  # the last chat that sent it a message after startup.
+  ai-trigger:
+    enabled: "${BOT_AI_TRIGGER_ENABLED}"
+    chat-id: "${BOT_AI_TRIGGER_CHAT_ID}"
+    history-window: "${BOT_AI_TRIGGER_HISTORY_WINDOW}"
+    min-delay: "${BOT_AI_TRIGGER_MIN_DELAY}"
+    max-delay: "${BOT_AI_TRIGGER_MAX_DELAY}"
+    max-history-messages: "${BOT_AI_TRIGGER_MAX_HISTORY_MESSAGES}"
+    time-zone: "${BOT_AI_TRIGGER_TIME_ZONE}"
+
+# ─── Spring AI / Google Gemini ───────────────────────────────────────────────
+spring:
+  ai:
+    google:
+      genai:
+        api-key: "${GEMINI_API_KEY}"
+        chat:
+          options:
+            model: gemini-3.1-flash-lite-preview
+            temperature: 0.7
+            google-search-retrieval: true
+            max-output-tokens: 300
+            include-server-side-tool-invocations: true
+        # Embedding has its OWN connection properties (separate @ConfigurationProperties
+        # under spring.ai.google.genai.embedding) — it does NOT inherit the chat api-key.
+        embedding:
+          api-key: "${GEMINI_API_KEY}"
+          text:
+            options:
+              model: gemini-embedding-2
+              dimensions: 1536
+
+  # ─── Postgres + pgvector ─────────────────────────────────────────────────────
+  datasource:
+    url: "jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}"
+    username: "${DB_USER}"
+    password: "${DB_PASSWORD}"
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+# ─── Logging ─────────────────────────────────────────────────────────────────
+logging:
+  level:
+    org.springframework.ai: INFO
+    org.hibernate.SQL: DEBUG
+
