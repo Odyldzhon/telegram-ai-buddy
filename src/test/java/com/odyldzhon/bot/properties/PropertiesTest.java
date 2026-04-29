@@ -81,7 +81,8 @@ class PropertiesTest {
                 Duration.ofMinutes(5),
                 Duration.ofMinutes(10),
                 20,
-                ZoneId.of("Europe/Kyiv"));
+                ZoneId.of("Europe/Kyiv"),
+                Duration.ofHours(2));
 
         // When
         boolean enabled = properties.enabled();
@@ -91,6 +92,7 @@ class PropertiesTest {
         Duration maxDelay = properties.maxDelay();
         int maxHistoryMessages = properties.maxHistoryMessages();
         ZoneId timeZone = properties.timeZone();
+        Duration idleThreshold = properties.idleParticipationThreshold();
 
         // Then
         assertThat(enabled).isTrue();
@@ -100,6 +102,7 @@ class PropertiesTest {
         assertThat(maxDelay).isEqualTo(Duration.ofMinutes(10));
         assertThat(maxHistoryMessages).isEqualTo(20);
         assertThat(timeZone).isEqualTo(ZoneId.of("Europe/Kyiv"));
+        assertThat(idleThreshold).isEqualTo(Duration.ofHours(2));
     }
 
     @Test

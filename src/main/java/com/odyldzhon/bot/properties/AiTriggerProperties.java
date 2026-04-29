@@ -17,6 +17,7 @@ public record AiTriggerProperties(
         Duration minDelay,
         Duration maxDelay,
         int maxHistoryMessages,
-        @NotNull ZoneId timeZone) {
+        @NotNull ZoneId timeZone,
+        Duration idleParticipationThreshold) {
 
 }

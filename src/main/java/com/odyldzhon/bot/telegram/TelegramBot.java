@@ -6,7 +6,6 @@ import com.odyldzhon.bot.persistence.MessageStore;
 import com.odyldzhon.bot.properties.AiTriggerProperties;
 import com.odyldzhon.bot.properties.BotProperties;
 import com.odyldzhon.bot.telegram.util.MessageAuthors;
-import com.odyldzhon.bot.telegram.util.TriggerMatcher;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -36,6 +35,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final ImageDescriber imageDescriber;
     private final AssistantConversation assistantConversation;
     private final TypingIndicator typingIndicator;
+    private final TriggerMatcher triggerMatcher;
 
     public TelegramBot(
             BotProperties botProperties,
@@ -43,7 +43,8 @@ public class TelegramBot extends TelegramLongPollingBot {
             MessageStore messageStore,
             ImageDescriber imageDescriber,
             AssistantConversation assistantConversation,
-            TypingIndicator typingIndicator) {
+            TypingIndicator typingIndicator,
+            TriggerMatcher triggerMatcher) {
         super(botProperties.token());
         this.botProperties = botProperties;
         this.aiTriggerProperties = aiTriggerProperties;
@@ -51,6 +52,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.imageDescriber = imageDescriber;
         this.assistantConversation = assistantConversation;
         this.typingIndicator = typingIndicator;
+        this.triggerMatcher = triggerMatcher;
     }
 
     @Override
@@ -94,7 +96,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             log.error("Failed to store message: {}", e.getMessage(), e);
         }
 
-        if (TriggerMatcher.matches(message, triggerSource, botProperties.name(), botProperties.username())) {
+        if (triggerMatcher.shouldReact(message, triggerSource)) {
             final String triggerText = triggerSource;
             String reply = typingIndicator.runWith(
                     () -> sendTypingAction(chatId),

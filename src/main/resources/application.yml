@@ -15,6 +15,7 @@ bot:
     max-delay: "${BOT_AI_TRIGGER_MAX_DELAY}"
     max-history-messages: "${BOT_AI_TRIGGER_MAX_HISTORY_MESSAGES}"
     time-zone: "${BOT_AI_TRIGGER_TIME_ZONE}"
+    idle-participation-threshold: "${BOT_AI_TRIGGER_IDLE_PARTICIPATION_THRESHOLD:PT2H}"
 
 # ─── Spring AI / Google Gemini ───────────────────────────────────────────────
 spring:

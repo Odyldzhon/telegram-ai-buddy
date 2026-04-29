@@ -16,9 +16,11 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
@@ -205,10 +207,80 @@ class TelegramBotTest {
                 .containsExactly(new SentMessage("123", "⚠️ Lebowski is unavailable right now."));
     }
 
+    @Test
+    @DisplayName("Replies to a non-trigger message after the idle threshold has elapsed")
+    void onUpdateReceived_idleThresholdElapsed_triggersAssistantOnPlainMessage() {
+        // Given
+        Instant t0 = Instant.parse("2026-04-30T10:00:00Z");
+        MutableClock clock = new MutableClock(t0);
+        TestableTelegramBot bot = newBot(clock);
+        // Idle threshold is 2h; advance the clock just past that.
+        clock.set(t0.plus(Duration.ofHours(2)).plusSeconds(1));
+        Update update = textUpdate(123L, "odyld", "just chatting", 1_777_398_500);
+        when(assistantConversation.reply("odyld", "just chatting"))
+                .thenReturn("Любопытно.");
+
+        // When
+        bot.onUpdateReceived(update);
+
+        // Then
+        assertThat(bot.sentMessages)
+                .containsExactly(new SentMessage("123", "Любопытно."));
+        verify(assistantConversation).reply("odyld", "just chatting");
+    }
+
+    @Test
+    @DisplayName("Does not reply to a non-trigger message before the idle threshold has elapsed")
+    void onUpdateReceived_idleThresholdNotElapsed_doesNotTrigger() {
+        // Given
+        Instant t0 = Instant.parse("2026-04-30T10:00:00Z");
+        MutableClock clock = new MutableClock(t0);
+        TestableTelegramBot bot = newBot(clock);
+        clock.set(t0.plus(Duration.ofMinutes(30)));
+        Update update = textUpdate(123L, "odyld", "just chatting", 1_777_398_501);
+
+        // When
+        bot.onUpdateReceived(update);
+
+        // Then
+        verify(assistantConversation, never()).reply(any(), any());
+        assertThat(bot.sentMessages).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Idle-triggered reply resets the idle timer for subsequent messages")
+    void onUpdateReceived_idleTriggeredReply_resetsIdleTimer() {
+        // Given
+        Instant t0 = Instant.parse("2026-04-30T10:00:00Z");
+        MutableClock clock = new MutableClock(t0);
+        TestableTelegramBot bot = newBot(clock);
+        Instant idleNow = t0.plus(Duration.ofHours(2)).plusSeconds(1);
+        clock.set(idleNow);
+        when(assistantConversation.reply(eq("odyld"), any())).thenReturn("first idle reply");
+
+        // When: first message triggers idle reply
+        bot.onUpdateReceived(textUpdate(123L, "odyld", "first", 1_777_398_600));
+
+        // And: a second message arrives only 5 minutes later, still without a mention
+        clock.set(idleNow.plus(Duration.ofMinutes(5)));
+        bot.onUpdateReceived(textUpdate(123L, "odyld", "second", 1_777_398_900));
+
+        // Then: only the first message produced a reply
+        assertThat(bot.sentMessages).containsExactly(new SentMessage("123", "first idle reply"));
+        verify(assistantConversation, times(1)).reply(eq("odyld"), any());
+    }
+
     private TestableTelegramBot newBot() {
+        return newBot(Clock.systemUTC());
+    }
+
+    private TestableTelegramBot newBot(Clock clock) {
+        BotProperties botProps = botProperties();
+        AiTriggerProperties aiProps = aiTriggerProperties();
+        TriggerMatcher matcher = new TriggerMatcher(botProps, aiProps, clock);
         return new TestableTelegramBot(
-                botProperties(), aiTriggerProperties(),
-                messageStore, imageDescriber, assistantConversation, typingIndicator);
+                botProps, aiProps,
+                messageStore, imageDescriber, assistantConversation, typingIndicator, matcher);
     }
 
     private static BotProperties botProperties() {
@@ -223,7 +295,8 @@ class TelegramBotTest {
                 Duration.ofMinutes(1),
                 Duration.ofMinutes(1),
                 30,
-                ZoneId.of("Europe/Kyiv"));
+                ZoneId.of("Europe/Kyiv"),
+                Duration.ofHours(2));
     }
 
     private static Update textUpdate(long chatId, String username, String text, int epochSecond) {
@@ -257,9 +330,10 @@ class TelegramBotTest {
                             MessageStore messageStore,
                             ImageDescriber imageDescriber,
                             AssistantConversation assistantConversation,
-                            TypingIndicator typingIndicator) {
+                            TypingIndicator typingIndicator,
+                            TriggerMatcher triggerMatcher) {
             super(botProperties, aiTriggerProperties, messageStore, imageDescriber,
-                    assistantConversation, typingIndicator);
+                    assistantConversation, typingIndicator, triggerMatcher);
         }
 
         @Override
@@ -273,5 +347,21 @@ class TelegramBotTest {
             typingActions.add(chatId);
         }
     }
-}
 
+    /** Test-only {@link Clock} whose current instant can be moved forward at will. */
+    private static final class MutableClock extends Clock {
+        private volatile Instant now;
+
+        MutableClock(Instant initial) {
+            this.now = initial;
+        }
+
+        void set(Instant instant) {
+            this.now = instant;
+        }
+
+        @Override public ZoneId getZone() { return ZoneOffset.UTC; }
+        @Override public Clock withZone(ZoneId zone) { return this; }
+        @Override public Instant instant() { return now; }
+    }
+}
