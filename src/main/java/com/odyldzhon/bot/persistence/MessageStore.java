@@ -5,6 +5,7 @@ import com.odyldzhon.bot.persistence.repository.ChatMessageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -46,6 +47,10 @@ public class MessageStore {
 
     public Optional<ChatMessageEntity> latestMessage(Instant since) {
         return repository.findTopByCreatedAtAfterOrderByCreatedAtDesc(since);
+    }
+
+    public List<ChatMessageEntity> recent(int limit) {
+        return repository.findRecent(PageRequest.of(0, Math.max(1, limit)));
     }
 
     /** Convert {@code float[]} to the pgvector text literal {@code "[1.0,2.0,...]"}. */

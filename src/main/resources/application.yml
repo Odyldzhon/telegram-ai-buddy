@@ -15,6 +15,7 @@ bot:
     max-delay: "${BOT_AI_TRIGGER_MAX_DELAY}"
     max-history-messages: "${BOT_AI_TRIGGER_MAX_HISTORY_MESSAGES}"
     time-zone: "${BOT_AI_TRIGGER_TIME_ZONE}"
+    idle-participation-threshold: "${BOT_AI_TRIGGER_IDLE_PARTICIPATION_THRESHOLD:PT2H}"
 
 # ─── Spring AI / Google Gemini ───────────────────────────────────────────────
 spring:
@@ -29,8 +30,6 @@ spring:
             google-search-retrieval: true
             max-output-tokens: 300
             include-server-side-tool-invocations: true
-        # Embedding has its OWN connection properties (separate @ConfigurationProperties
-        # under spring.ai.google.genai.embedding) — it does NOT inherit the chat api-key.
         embedding:
           api-key: "${GEMINI_API_KEY}"
           text:

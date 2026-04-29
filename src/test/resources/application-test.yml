@@ -11,6 +11,7 @@ bot:
     max-delay: PT1M
     max-history-messages: 30
     time-zone: Europe/Sofia
+    idle-participation-threshold: PT2H
 
 spring:
   main:

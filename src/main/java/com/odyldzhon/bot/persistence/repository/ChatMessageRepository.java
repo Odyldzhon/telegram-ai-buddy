@@ -28,5 +28,8 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessageEntity, 
                                         @Param("limit")       int    limit);
 
     Optional<ChatMessageEntity> findTopByCreatedAtAfterOrderByCreatedAtDesc(Instant createdAt);
+
+    @Query("SELECT m FROM ChatMessageEntity m ORDER BY m.createdAt DESC")
+    List<ChatMessageEntity> findRecent(org.springframework.data.domain.Pageable pageable);
 }
 

@@ -261,7 +261,8 @@ class ScheduledAiTriggerServiceTest {
                 minDelay,
                 maxDelay,
                 30,
-                UKRAINE_ZONE);
+                UKRAINE_ZONE,
+                Duration.ofHours(2));
     }
 
     private static Clock clockAtUkraine(String localDateTime) {
