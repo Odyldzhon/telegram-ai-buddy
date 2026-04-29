@@ -1,17 +1,20 @@
 package com.odyldzhon.bot.telegram;
 
+import com.odyldzhon.bot.ai.AssistantConversation;
 import com.odyldzhon.bot.ai.ImageDescriber;
-import com.odyldzhon.bot.properties.AiTriggerProperties;
-import com.odyldzhon.bot.properties.BotProperties;
 import com.odyldzhon.bot.configuration.ChatClientConfig;
 import com.odyldzhon.bot.persistence.MessageStore;
+import com.odyldzhon.bot.properties.AiTriggerProperties;
+import com.odyldzhon.bot.properties.BotProperties;
+import com.odyldzhon.bot.telegram.util.MessageAuthors;
+import com.odyldzhon.bot.telegram.util.TriggerMatcher;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.ActionType;
 import org.telegram.telegrambots.meta.api.methods.GetFile;
+import org.telegram.telegrambots.meta.api.methods.send.SendChatAction;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
@@ -23,23 +26,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 
-/**
- * Long-polling Telegram bot:
- *   • Only listens to the single chat configured via {@code bot.ai-trigger.chat-id}.
- *     Updates from any other chat are silently ignored.
- *   • Stores every text or photo message in Postgres (with vector embedding).
- *   • Photos are described by the AI; the description is stored prefixed with "image: ".
- *   • Invokes the AI ONLY when the message contains the configured bot name.
- *
- * Wiring (credentials, ChatClient construction) lives in
- * {@link BotProperties} / {@link ChatClientConfig} so this class stays focused on behaviour.
- *
- * Note: the {@code assistantChatClient} field name MUST match the bean name
- * declared in {@link ChatClientConfig#ASSISTANT} – Spring uses parameter name
- * to disambiguate between the two {@link ChatClient} beans.
- */
 @Component
 @Slf4j
 public class TelegramBot extends TelegramLongPollingBot {
@@ -48,21 +35,23 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final AiTriggerProperties aiTriggerProperties;
     private final MessageStore messageStore;
     private final ImageDescriber imageDescriber;
-    /** Field/parameter name matches bean name {@link ChatClientConfig#ASSISTANT}. */
-    private final ChatClient assistantChatClient;
+    private final AssistantConversation assistantConversation;
+    private final TypingIndicator typingIndicator;
 
     public TelegramBot(
             BotProperties botProperties,
             AiTriggerProperties aiTriggerProperties,
             MessageStore messageStore,
             ImageDescriber imageDescriber,
-            @Qualifier(ChatClientConfig.ASSISTANT) ChatClient assistantChatClient) {
+            AssistantConversation assistantConversation,
+            TypingIndicator typingIndicator) {
         super(botProperties.token());
         this.botProperties = botProperties;
         this.aiTriggerProperties = aiTriggerProperties;
         this.messageStore = messageStore;
         this.imageDescriber = imageDescriber;
-        this.assistantChatClient = assistantChatClient;
+        this.assistantConversation = assistantConversation;
+        this.typingIndicator = typingIndicator;
     }
 
     @Override
@@ -79,7 +68,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             log.warn("Ignoring message from unrelated chat {}", chatId);
             return;
         }
-        String  author  = resolveAuthor(message);
+        String  author  = MessageAuthors.resolve(message);
         Instant time    = Instant.ofEpochSecond(message.getDate());
 
         String storedText = null;
@@ -106,8 +95,11 @@ public class TelegramBot extends TelegramLongPollingBot {
             log.error("Failed to store message: {}", e.getMessage(), e);
         }
 
-        if (containsTrigger(triggerSource)) {
-            String reply = askAi(author, triggerSource);
+        if (TriggerMatcher.contains(triggerSource, botProperties.name())) {
+            final String triggerText = triggerSource;
+            String reply = typingIndicator.runWith(
+                    () -> sendTypingAction(chatId),
+                    () -> assistantConversation.reply(author, triggerText));
             if (reply != null) {
                 sendText(chatId, reply);
                 try {
@@ -149,44 +141,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private static String resolveAuthor(Message message) {
-        return message.getFrom().getUserName() != null
-                ? message.getFrom().getUserName()
-                : message.getFrom().getFirstName();
-    }
-
-    private boolean containsTrigger(String text) {
-        return text != null
-                && botProperties.name() != null
-                && !botProperties.name().isBlank()
-                && text.toLowerCase(Locale.ROOT).contains(botProperties.name().toLowerCase(Locale.ROOT));
-    }
-
-    private String askAi(String author, String userMessage) {
-        try {
-            log.info("Trigger detected from {} – calling AI", author);
-            return assistantChatClient.prompt()
-                    .user("""
-                            A Telegram user mentioned you directly.
-
-                            Before answering, use your database tools to inspect recent chat history so you do not
-                            answer out of context.
-
-                            - Do not select the embedding column unless you need it.
-                            - Treat the newest rows as context, but answer the current message below.
-
-                            Author: @%s
-                            Message:
-                            %s
-                            """.formatted(author, userMessage))
-                    .call()
-                    .content();
-        } catch (Exception e) {
-            log.error("AI request failed: {}", e.getMessage(), e);
-            return null;
-        }
-    }
-
     public boolean sendText(String chatId, String text) {
         SendMessage msg = new SendMessage();
         msg.setChatId(chatId);
@@ -199,5 +153,15 @@ public class TelegramBot extends TelegramLongPollingBot {
             return false;
         }
     }
-}
 
+    private void sendTypingAction(String chatId) {
+        SendChatAction action = new SendChatAction();
+        action.setChatId(chatId);
+        action.setAction(ActionType.TYPING);
+        try {
+            execute(action);
+        } catch (TelegramApiException e) {
+            log.warn("Failed to send typing action to {}: {}", chatId, e.getMessage());
+        }
+    }
+}

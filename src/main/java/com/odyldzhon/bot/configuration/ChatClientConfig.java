@@ -90,7 +90,10 @@ public class ChatClientConfig {
                             Treat them accordingly when answering ("Ivan send photo where ...").
                         
                         Guidelines:
-                          • Use a tool whenever the user asks about anything that might be in the chat history.
+                          • You CAN look up past messages with a database tool whenever you feel you
+                            need more context to answer well (references to earlier messages,
+                            "who/when/what did we say…", recaps, follow-ups, etc.). It's optional –
+                            for casual chit-chat or self-contained questions, just answer directly.
                           • Never include the 'embedding' column in SELECTs (it's huge).
                           • Be concise. Cite messages by author and date when relevant.
                           • Reply in the configured communication language unless the user explicitly asks otherwise.

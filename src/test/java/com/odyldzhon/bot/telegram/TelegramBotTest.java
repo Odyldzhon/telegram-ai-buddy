@@ -1,16 +1,16 @@
 package com.odyldzhon.bot.telegram;
 
+import com.odyldzhon.bot.ai.AssistantConversation;
 import com.odyldzhon.bot.ai.ImageDescriber;
 import com.odyldzhon.bot.persistence.MessageStore;
 import com.odyldzhon.bot.properties.AiTriggerProperties;
 import com.odyldzhon.bot.properties.BotProperties;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.ai.chat.client.ChatClient;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -21,9 +21,13 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,20 +37,27 @@ class TelegramBotTest {
     /** Single chat the bot is allowed to listen to / answer in. */
     private static final String ALLOWED_CHAT_ID = "123";
 
-    @Mock
-    private MessageStore messageStore;
+    @Mock private MessageStore messageStore;
+    @Mock private ImageDescriber imageDescriber;
+    @Mock private AssistantConversation assistantConversation;
+    @Mock private TypingIndicator typingIndicator;
 
-    @Mock
-    private ImageDescriber imageDescriber;
-
-    @Mock
-    private ChatClient assistantChatClient;
-
-    @Mock
-    private ChatClient.ChatClientRequestSpec requestSpec;
-
-    @Mock
-    private ChatClient.CallResponseSpec callResponseSpec;
+    /**
+     * Default behaviour: TypingIndicator runs the supplier directly and also
+     * fires the ping once, so tests can assert both.
+     */
+    @SuppressWarnings("unchecked")
+    @BeforeEach
+    void wireTypingIndicatorPassThrough() {
+        org.mockito.Mockito.lenient()
+                .when(typingIndicator.runWith(any(Runnable.class), any(Supplier.class)))
+                .thenAnswer(inv -> {
+                    Runnable ping = inv.getArgument(0);
+                    Supplier<?> task = inv.getArgument(1);
+                    ping.run();
+                    return task.get();
+                });
+    }
 
     @Test
     @DisplayName("Returns the configured bot username")
@@ -72,7 +83,8 @@ class TelegramBotTest {
         bot.onUpdateReceived(update);
 
         // Then
-        verify(messageStore, never()).save(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+        verify(messageStore, never()).save(any(), any(), any());
+        verify(assistantConversation, never()).reply(any(), any());
     }
 
     @Test
@@ -86,8 +98,8 @@ class TelegramBotTest {
         bot.onUpdateReceived(update);
 
         // Then
-        verify(messageStore, never()).save(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
-        verify(assistantChatClient, never()).prompt();
+        verify(messageStore, never()).save(any(), any(), any());
+        verify(assistantConversation, never()).reply(any(), any());
         assertThat(bot.sentMessages).isEmpty();
     }
 
@@ -103,39 +115,41 @@ class TelegramBotTest {
 
         // Then
         verify(messageStore).save("odyld", "Hello room", Instant.ofEpochSecond(1_777_398_400));
+        verify(assistantConversation, never()).reply(any(), any());
     }
 
     @Test
-    @DisplayName("Calls AI, sends a reply, and stores that reply when trigger text is present")
+    @DisplayName("Calls the assistant, sends its reply, stores it, and shows typing")
+    @SuppressWarnings("unchecked")
     void onUpdateReceived_textWithTrigger_sendsAndStoresAiReply() {
         // Given
         TestableTelegramBot bot = newBot();
         Update update = textUpdate(123L, "odyld", "Hey, Lebowski, what do you think?", 1_777_398_401);
-        when(assistantChatClient.prompt()).thenReturn(requestSpec);
-        when(requestSpec.user(org.mockito.ArgumentMatchers.anyString())).thenReturn(requestSpec);
-        when(requestSpec.call()).thenReturn(callResponseSpec);
-        when(callResponseSpec.content()).thenReturn("Нормально, держимся.");
+        when(assistantConversation.reply("odyld", "Hey, Lebowski, what do you think?"))
+                .thenReturn("Нормально, держимся.");
 
         // When
         bot.onUpdateReceived(update);
 
         // Then
-        assertThat(bot.sentMessages).containsExactly(new SentMessage("123", "Нормально, держимся."));
-        ArgumentCaptor<String> authorCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-        verify(messageStore, org.mockito.Mockito.times(2))
-                .save(authorCaptor.capture(), messageCaptor.capture(), org.mockito.ArgumentMatchers.any(Instant.class));
-        assertThat(authorCaptor.getAllValues()).containsExactly("odyld", "Lebowski");
-        assertThat(messageCaptor.getAllValues()).containsExactly("Hey, Lebowski, what do you think?", "Нормально, держимся.");
+        assertThat(bot.sentMessages)
+                .containsExactly(new SentMessage("123", "Нормально, держимся."));
+        verify(messageStore, times(2))
+                .save(any(String.class), any(String.class), any(Instant.class));
+        verify(messageStore).save("odyld", "Hey, Lebowski, what do you think?",
+                Instant.ofEpochSecond(1_777_398_401));
+        verify(messageStore).save(eq("Lebowski"), eq("Нормально, держимся."), any(Instant.class));
+        verify(typingIndicator).runWith(any(Runnable.class), any(Supplier.class));
+        assertThat(bot.typingActions).contains("123");
     }
 
     @Test
-    @DisplayName("Sends a fallback message when the AI call fails")
+    @DisplayName("Sends a fallback message when the assistant returns null")
     void onUpdateReceived_aiFailure_sendsFallbackMessage() {
         // Given
         TestableTelegramBot bot = newBot();
         Update update = textUpdate(123L, "odyld", "Lebowski?", 1_777_398_402);
-        when(assistantChatClient.prompt()).thenThrow(new RuntimeException("AI is down"));
+        when(assistantConversation.reply(any(), any())).thenReturn(null);
 
         // When
         bot.onUpdateReceived(update);
@@ -147,7 +161,8 @@ class TelegramBotTest {
 
     private TestableTelegramBot newBot() {
         return new TestableTelegramBot(
-                botProperties(), aiTriggerProperties(), messageStore, imageDescriber, assistantChatClient);
+                botProperties(), aiTriggerProperties(),
+                messageStore, imageDescriber, assistantConversation, typingIndicator);
     }
 
     private static BotProperties botProperties() {
@@ -189,18 +204,27 @@ class TelegramBotTest {
 
     private static class TestableTelegramBot extends TelegramBot {
         private final List<SentMessage> sentMessages = new ArrayList<>();
+        private final List<String> typingActions = new ArrayList<>();
 
         TestableTelegramBot(BotProperties botProperties,
                             AiTriggerProperties aiTriggerProperties,
                             MessageStore messageStore,
                             ImageDescriber imageDescriber,
-                            ChatClient assistantChatClient) {
-            super(botProperties, aiTriggerProperties, messageStore, imageDescriber, assistantChatClient);
+                            AssistantConversation assistantConversation,
+                            TypingIndicator typingIndicator) {
+            super(botProperties, aiTriggerProperties, messageStore, imageDescriber,
+                    assistantConversation, typingIndicator);
         }
 
         @Override
         public boolean sendText(String chatId, String text) {
             sentMessages.add(new SentMessage(chatId, text));
+            return true;
+        }
+
+        @Override
+        boolean sendTypingAction(String chatId) {
+            typingActions.add(chatId);
             return true;
         }
     }
