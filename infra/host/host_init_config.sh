@@ -41,6 +41,13 @@ apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-co
 echo "--- 8. Docker installation completed. Checking status ---"
 docker run hello-world
 
+echo "--- 9. Git installation ---"
+apt install git -y
+
+echo "--- 10. Getting project repository ---"
+git clone https://github.com/Odyldzhon/telegram-ai-buddy.git
+cd telegram-ai-buddy
+
 # Check and reboot if required
 if [ -f /var/run/reboot-required ]; then
     echo "--- Reboot required after update in 5 sec ... ---"

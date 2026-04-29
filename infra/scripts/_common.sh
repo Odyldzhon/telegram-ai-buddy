@@ -5,5 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DOCKER_DIR="$(cd "$SCRIPT_DIR/../docker" && pwd)"
 
-COMPOSE=(docker compose -f "$DOCKER_DIR/docker-compose.yml" --env-file "$DOCKER_DIR/.env")
-
+COMPOSE=(docker compose -f "$DOCKER_DIR/docker-compose.yml")
+if [[ -f "$DOCKER_DIR/.env" ]]; then
+  COMPOSE+=(--env-file "$DOCKER_DIR/.env")
+fi
