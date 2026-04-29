@@ -144,6 +144,52 @@ class TelegramBotTest {
     }
 
     @Test
+    @DisplayName("Replies when the user replies to one of the bot's own messages without naming it")
+    void onUpdateReceived_replyToBotMessage_triggersAssistant() {
+        // Given
+        TestableTelegramBot bot = newBot();
+        Update update = textUpdate(123L, "odyld", "and what about now?", 1_777_398_403);
+        Message botMessage = new Message();
+        User botUser = new User();
+        botUser.setUserName("test_bot");
+        botMessage.setFrom(botUser);
+        botMessage.setText("previous bot reply");
+        update.getMessage().setReplyToMessage(botMessage);
+        when(assistantConversation.reply("odyld", "and what about now?"))
+                .thenReturn("Всё ещё держимся.");
+
+        // When
+        bot.onUpdateReceived(update);
+
+        // Then
+        assertThat(bot.sentMessages)
+                .containsExactly(new SentMessage("123", "Всё ещё держимся."));
+        verify(assistantConversation).reply("odyld", "and what about now?");
+        verify(messageStore).save(eq("Lebowski"), eq("Всё ещё держимся."), any(Instant.class));
+    }
+
+    @Test
+    @DisplayName("Does not trigger assistant when reply target is another user's message")
+    void onUpdateReceived_replyToOtherUser_doesNotTrigger() {
+        // Given
+        TestableTelegramBot bot = newBot();
+        Update update = textUpdate(123L, "odyld", "agreed", 1_777_398_404);
+        Message otherMessage = new Message();
+        User otherUser = new User();
+        otherUser.setUserName("someone_else");
+        otherMessage.setFrom(otherUser);
+        otherMessage.setText("random thought");
+        update.getMessage().setReplyToMessage(otherMessage);
+
+        // When
+        bot.onUpdateReceived(update);
+
+        // Then
+        verify(assistantConversation, never()).reply(any(), any());
+        assertThat(bot.sentMessages).isEmpty();
+    }
+
+    @Test
     @DisplayName("Sends a fallback message when the assistant returns null")
     void onUpdateReceived_aiFailure_sendsFallbackMessage() {
         // Given
@@ -223,9 +269,8 @@ class TelegramBotTest {
         }
 
         @Override
-        boolean sendTypingAction(String chatId) {
+        void sendTypingAction(String chatId) {
             typingActions.add(chatId);
-            return true;
         }
     }
 }

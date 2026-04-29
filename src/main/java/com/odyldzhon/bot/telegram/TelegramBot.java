@@ -2,7 +2,6 @@ package com.odyldzhon.bot.telegram;
 
 import com.odyldzhon.bot.ai.AssistantConversation;
 import com.odyldzhon.bot.ai.ImageDescriber;
-import com.odyldzhon.bot.configuration.ChatClientConfig;
 import com.odyldzhon.bot.persistence.MessageStore;
 import com.odyldzhon.bot.properties.AiTriggerProperties;
 import com.odyldzhon.bot.properties.BotProperties;
@@ -95,7 +94,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             log.error("Failed to store message: {}", e.getMessage(), e);
         }
 
-        if (TriggerMatcher.contains(triggerSource, botProperties.name())) {
+        if (TriggerMatcher.matches(message, triggerSource, botProperties.name(), botProperties.username())) {
             final String triggerText = triggerSource;
             String reply = typingIndicator.runWith(
                     () -> sendTypingAction(chatId),
@@ -154,7 +153,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void sendTypingAction(String chatId) {
+    void sendTypingAction(String chatId) {
         SendChatAction action = new SendChatAction();
         action.setChatId(chatId);
         action.setAction(ActionType.TYPING);
