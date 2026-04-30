@@ -131,26 +131,6 @@ class ScheduledAiTriggerServiceTest {
     }
 
     @Test
-    @DisplayName("Skips one run when the newest recent message is already from the AI")
-    void runOnce_latestMessageFromAi_skipsAiCall() {
-        // Given
-        ScheduledAiTriggerService service = service(properties(true, "42"));
-        ChatMessageEntity latest = ChatMessageEntity.builder()
-                .author("Lebowski")
-                .message("already spoke")
-                .createdAt(Instant.now())
-                .build();
-        when(messageStore.latestMessage(any(Instant.class))).thenReturn(Optional.of(latest));
-
-        // When
-        ReflectionTestUtils.invokeMethod(service, "runOnce");
-
-        // Then
-        verify(assistantChatClient, never()).prompt();
-        verify(telegramBot, never()).sendText(anyString(), anyString());
-    }
-
-    @Test
     @DisplayName("Uses recent-history prompt, sends the AI reply, and stores it")
     void runOnce_recentHumanMessage_sendsReplyAndStoresIt() {
         // Given

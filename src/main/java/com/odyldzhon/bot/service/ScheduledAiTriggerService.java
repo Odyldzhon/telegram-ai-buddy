@@ -98,11 +98,7 @@ public class ScheduledAiTriggerService {
         Optional<ChatMessageEntity> latestMessage = messageStore.latestMessage(since);
 
         String prompt;
-        if (latestMessage.isPresent()) {
-            if (botProperties.name().equals(latestMessage.get().getAuthor())) {
-                log.info("Skipping proactive AI trigger: latest recent message is already from AI");
-                return;
-            }
+        if (latestMessage.isPresent() && !botProperties.name().equals(latestMessage.get().getAuthor())) {
             prompt = historyPrompt(since);
         } else {
             prompt = newsPrompt();
