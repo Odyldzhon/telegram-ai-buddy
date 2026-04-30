@@ -130,7 +130,6 @@
           </gitFlowConfig>
           <skipTestProject>true</skipTestProject>
           <keepBranch>false</keepBranch>
-	  <pushRemote>true</pushRemote>
 	  <versionDigitToIncrement>0</versionDigitToIncrement>
           <commitMessages>
             <featureStartMessage>Update versions for feature branch</featureStartMessage>
