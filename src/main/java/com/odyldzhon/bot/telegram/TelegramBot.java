@@ -148,6 +148,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         msg.setText(text);
         try {
             execute(msg);
+            if (text.length() > 4096) {
+                sendText(chatId, text.substring(4096));
+            }
             return true;
         } catch (TelegramApiException e) {
             log.error("Failed to send message: {}", e.getMessage(), e);
