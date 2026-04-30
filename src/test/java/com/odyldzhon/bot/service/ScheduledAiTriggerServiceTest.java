@@ -164,8 +164,8 @@ class ScheduledAiTriggerServiceTest {
         // Given
         ScheduledAiTriggerService service = service(properties(true, "99"));
         when(messageStore.latestMessage(any(Instant.class))).thenReturn(Optional.empty());
-        mockAiReply("Новость дня.");
-        when(telegramBot.sendText("99", "Новость дня.")).thenReturn(true);
+        mockAiReply("Daily news.");
+        when(telegramBot.sendText("99", "Daily news.")).thenReturn(true);
 
         // When
         ReflectionTestUtils.invokeMethod(service, "runOnce");
@@ -175,7 +175,7 @@ class ScheduledAiTriggerServiceTest {
         verify(requestSpec).user(promptCaptor.capture());
         assertThat(promptCaptor.getValue())
                 .contains("important news from today");
-        verify(telegramBot).sendText("99", "Новость дня.");
+        verify(telegramBot).sendText("99", "Daily news.");
     }
 
     @Test
@@ -191,6 +191,21 @@ class ScheduledAiTriggerServiceTest {
 
         // Then
         verify(telegramBot, never()).sendText(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("Sends a daily joke to the configured chat ID")
+    void sendDailyJoke_sendsJokeToConfiguredChatId() {
+        // Given
+        ScheduledAiTriggerService service = service(properties(true, "42"));
+        mockAiReply("Why don't scientists trust atoms? Because they make up everything!");
+        when(telegramBot.sendText("42", "Why don't scientists trust atoms? Because they make up everything!")).thenReturn(true);
+
+        // When
+        service.sendDailyJoke();
+
+        // Then
+        verify(telegramBot).sendText("42", "Why don't scientists trust atoms? Because they make up everything!");
     }
 
     private ScheduledAiTriggerService service(AiTriggerProperties properties) {
@@ -239,5 +254,3 @@ class ScheduledAiTriggerServiceTest {
         when(callResponseSpec.content()).thenReturn(reply);
     }
 }
-
-

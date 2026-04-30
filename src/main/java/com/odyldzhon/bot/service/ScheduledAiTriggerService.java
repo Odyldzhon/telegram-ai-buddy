@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -56,6 +57,12 @@ public class ScheduledAiTriggerService {
 
     void setClockForTesting(Clock clock) {
         this.clock = clock;
+    }
+
+    @Scheduled(cron = "0 1 8 * * *", zone = "Europe/Kiev")
+    public void sendDailyJoke() {
+        String joke = askAi(jokePrompt());
+        sendAndSave(properties.chatId(), joke);
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -105,17 +112,7 @@ public class ScheduledAiTriggerService {
         }
 
         String reply = askAi(prompt);
-        if (reply == null) {
-            return;
-        }
-
-        if (telegramBot.sendText(chatId, reply)) {
-            try {
-                messageStore.save(botProperties.name(), reply, Instant.now(clock));
-            } catch (Exception e) {
-                log.error("Failed to store proactive AI reply: {}", e.getMessage(), e);
-            }
-        }
+        sendAndSave(chatId, reply);
     }
 
 
@@ -158,6 +155,10 @@ public class ScheduledAiTriggerService {
                 """.formatted(LocalDate.now(clock.withZone(properties.timeZone())));
     }
 
+    private String jokePrompt() {
+        return "This is scheduled trigger to post a joke to telegram group. Please provide one";
+    }
+
     private String askAi(String prompt) {
         try {
             String reply = assistantChatClient.prompt()
@@ -172,6 +173,20 @@ public class ScheduledAiTriggerService {
         } catch (Exception e) {
             log.error("Proactive AI request failed: {}", e.getMessage(), e);
             return null;
+        }
+    }
+
+    private void sendAndSave(String chatId, String reply) {
+        if (reply == null) {
+            return;
+        }
+
+        if (telegramBot.sendText(chatId, reply)) {
+            try {
+                messageStore.save(botProperties.name(), reply, Instant.now(clock));
+            } catch (Exception e) {
+                log.error("Failed to store proactive AI reply: {}", e.getMessage(), e);
+            }
         }
     }
 

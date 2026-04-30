@@ -271,7 +271,7 @@ class TelegramBotTest {
     }
 
 // TODO rewrite test or class to support testing
-    
+
 //    @Test
 //    @DisplayName("Splits and sends text messages longer than 4096 characters")
 //    void sendText_longMessage_splitsAndSends() {
