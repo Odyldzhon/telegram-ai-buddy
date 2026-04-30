@@ -28,7 +28,6 @@ import java.util.concurrent.ThreadLocalRandom;
 @Service
 public class ScheduledAiTriggerService {
 
-    private static final int MAX_REPLY_LENGTH = 3_500;
     private static final LocalTime QUIET_HOURS_END = LocalTime.of(8, 0);
 
     private final AiTriggerProperties properties;
@@ -45,7 +44,7 @@ public class ScheduledAiTriggerService {
             MessageStore messageStore,
             TelegramBot telegramBot,
             @Qualifier(ChatClientConfig.ASSISTANT) ChatClient assistantChatClient,
-            TaskScheduler taskScheduler) {
+            @Qualifier("proactiveAiTaskScheduler") TaskScheduler taskScheduler) {
         this.properties = properties;
         this.botProperties = botProperties;
         this.messageStore = messageStore;
@@ -173,7 +172,7 @@ public class ScheduledAiTriggerService {
                 log.warn("Proactive AI returned an empty reply");
                 return null;
             }
-            return truncateReply(reply.trim());
+            return reply.trim();
         } catch (Exception e) {
             log.error("Proactive AI request failed: {}", e.getMessage(), e);
             return null;
@@ -202,12 +201,5 @@ public class ScheduledAiTriggerService {
 
     private boolean isQuietTime(Instant instant) {
         return instant.atZone(properties.timeZone()).toLocalTime().isBefore(QUIET_HOURS_END);
-    }
-
-    private static String truncateReply(String value) {
-        if (value == null || value.length() <= MAX_REPLY_LENGTH) {
-            return value;
-        }
-        return value.substring(0, MAX_REPLY_LENGTH - 1) + "…";
     }
 }
