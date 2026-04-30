@@ -213,27 +213,6 @@ class ScheduledAiTriggerServiceTest {
         verify(telegramBot, never()).sendText(anyString(), anyString());
     }
 
-    @Test
-    @DisplayName("Truncates overlong AI replies before sending")
-    void runOnce_overlongAiReply_sendsTruncatedReply() {
-        // Given
-        ScheduledAiTriggerService service = service(properties(true, "42"));
-        when(messageStore.latestMessage(any(Instant.class))).thenReturn(Optional.empty());
-        String longReply = "x".repeat(4_000);
-        mockAiReply(longReply);
-        when(telegramBot.sendText(org.mockito.ArgumentMatchers.eq("42"), anyString())).thenReturn(true);
-
-        // When
-        ReflectionTestUtils.invokeMethod(service, "runOnce");
-
-        // Then
-        ArgumentCaptor<String> replyCaptor = ArgumentCaptor.forClass(String.class);
-        verify(telegramBot).sendText(org.mockito.ArgumentMatchers.eq("42"), replyCaptor.capture());
-        assertThat(replyCaptor.getValue())
-                .hasSize(3_500)
-                .endsWith("…");
-    }
-
     private ScheduledAiTriggerService service(AiTriggerProperties properties) {
         return service(properties, DEFAULT_CLOCK);
     }

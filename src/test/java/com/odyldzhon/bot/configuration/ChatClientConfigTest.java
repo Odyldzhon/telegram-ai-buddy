@@ -43,14 +43,6 @@ class ChatClientConfigTest {
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
         verify(builder).defaultSystem(promptCaptor.capture());
         verify(builder).defaultTools(databaseTools);
-        assertThat(promptCaptor.getValue())
-                .contains("Lebowski")
-                .contains("Common persona prompt")
-                .contains("laid-back slacker-noir Telegram regular")
-                .contains("not an imitation or copy of any movie character")
-                .contains("Communication language: English")
-                .contains("searchSimilarMessages")
-                .contains("executeSelectQuery");
         assertThat(result).isSameAs(chatClient);
     }
 

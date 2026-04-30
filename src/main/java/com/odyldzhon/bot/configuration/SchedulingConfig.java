@@ -10,7 +10,7 @@ import java.time.Clock;
 @Configuration
 public class SchedulingConfig {
 
-    @Bean
+    @Bean("proactiveAiTaskScheduler")
     public TaskScheduler taskScheduler() {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
         scheduler.setPoolSize(1);
