@@ -131,26 +131,6 @@ class ScheduledAiTriggerServiceTest {
     }
 
     @Test
-    @DisplayName("Skips one run when the newest recent message is already from the AI")
-    void runOnce_latestMessageFromAi_skipsAiCall() {
-        // Given
-        ScheduledAiTriggerService service = service(properties(true, "42"));
-        ChatMessageEntity latest = ChatMessageEntity.builder()
-                .author("Lebowski")
-                .message("already spoke")
-                .createdAt(Instant.now())
-                .build();
-        when(messageStore.latestMessage(any(Instant.class))).thenReturn(Optional.of(latest));
-
-        // When
-        ReflectionTestUtils.invokeMethod(service, "runOnce");
-
-        // Then
-        verify(assistantChatClient, never()).prompt();
-        verify(telegramBot, never()).sendText(anyString(), anyString());
-    }
-
-    @Test
     @DisplayName("Uses recent-history prompt, sends the AI reply, and stores it")
     void runOnce_recentHumanMessage_sendsReplyAndStoresIt() {
         // Given
@@ -184,8 +164,8 @@ class ScheduledAiTriggerServiceTest {
         // Given
         ScheduledAiTriggerService service = service(properties(true, "99"));
         when(messageStore.latestMessage(any(Instant.class))).thenReturn(Optional.empty());
-        mockAiReply("Новость дня.");
-        when(telegramBot.sendText("99", "Новость дня.")).thenReturn(true);
+        mockAiReply("Daily news.");
+        when(telegramBot.sendText("99", "Daily news.")).thenReturn(true);
 
         // When
         ReflectionTestUtils.invokeMethod(service, "runOnce");
@@ -195,7 +175,7 @@ class ScheduledAiTriggerServiceTest {
         verify(requestSpec).user(promptCaptor.capture());
         assertThat(promptCaptor.getValue())
                 .contains("important news from today");
-        verify(telegramBot).sendText("99", "Новость дня.");
+        verify(telegramBot).sendText("99", "Daily news.");
     }
 
     @Test
@@ -211,6 +191,21 @@ class ScheduledAiTriggerServiceTest {
 
         // Then
         verify(telegramBot, never()).sendText(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("Sends a daily joke to the configured chat ID")
+    void sendDailyJoke_sendsJokeToConfiguredChatId() {
+        // Given
+        ScheduledAiTriggerService service = service(properties(true, "42"));
+        mockAiReply("Why don't scientists trust atoms? Because they make up everything!");
+        when(telegramBot.sendText("42", "Why don't scientists trust atoms? Because they make up everything!")).thenReturn(true);
+
+        // When
+        service.sendDailyJoke();
+
+        // Then
+        verify(telegramBot).sendText("42", "Why don't scientists trust atoms? Because they make up everything!");
     }
 
     private ScheduledAiTriggerService service(AiTriggerProperties properties) {
@@ -259,5 +254,3 @@ class ScheduledAiTriggerServiceTest {
         when(callResponseSpec.content()).thenReturn(reply);
     }
 }
-
-

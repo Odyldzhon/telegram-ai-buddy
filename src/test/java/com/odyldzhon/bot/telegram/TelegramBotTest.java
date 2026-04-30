@@ -270,6 +270,26 @@ class TelegramBotTest {
         verify(assistantConversation, times(1)).reply(eq("odyld"), any());
     }
 
+// TODO rewrite test or class to support testing
+
+//    @Test
+//    @DisplayName("Splits and sends text messages longer than 4096 characters")
+//    void sendText_longMessage_splitsAndSends() {
+//        // Given
+//        TestableTelegramBot bot = newBot();
+//        String longText = "a".repeat(5000); // 5000 characters
+//        String chatId = "123";
+//
+//        // When
+//        bot.sendText(chatId, longText);
+//
+//        // Then
+//        assertThat(bot.sentMessages).containsExactly(
+//            new SentMessage(chatId, longText.substring(0, 4096)),
+//            new SentMessage(chatId, longText.substring(4096))
+//        );
+//    }
+
     private TestableTelegramBot newBot() {
         return newBot(Clock.systemUTC());
     }
