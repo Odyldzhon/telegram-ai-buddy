@@ -60,7 +60,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Async
     @Override
-    public void onUpdateReceived(Update update) {
+    public void onUpdateReceived(Update  update) {
         if (!update.hasMessage()) return;
 
         Message message = update.getMessage();
