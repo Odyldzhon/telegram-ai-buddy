@@ -17,6 +17,9 @@ bot:
     time-zone: "${BOT_AI_TRIGGER_TIME_ZONE}"
     idle-participation-threshold: "${BOT_AI_TRIGGER_IDLE_PARTICIPATION_THRESHOLD:PT2H}"
 
+  assistant:
+    retry-backoff: "${BOT_ASSISTANT_RETRY_BACKOFF}"
+
 # ─── Spring AI / Google Gemini ───────────────────────────────────────────────
 spring:
   ai:

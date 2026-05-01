@@ -13,6 +13,9 @@ bot:
     time-zone: Europe/Sofia
     idle-participation-threshold: PT2H
 
+  assistant:
+    retry-backoff: 1s
+
 spring:
   main:
     web-application-type: none

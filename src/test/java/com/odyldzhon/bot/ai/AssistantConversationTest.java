@@ -2,6 +2,7 @@ package com.odyldzhon.bot.ai;
 
 import com.odyldzhon.bot.persistence.MessageStore;
 import com.odyldzhon.bot.persistence.entity.ChatMessageEntity;
+import com.odyldzhon.bot.properties.AssistantProperties;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.chat.client.ChatClient;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -26,11 +28,15 @@ class AssistantConversationTest {
     @Mock private ChatClient.ChatClientRequestSpec requestSpec;
     @Mock private ChatClient.CallResponseSpec callResponseSpec;
 
+    private AssistantConversation newConversation() {
+        return new AssistantConversation(messageStore, chatClient, new AssistantProperties(Duration.ZERO));
+    }
+
     @Test
     @DisplayName("Inlines recent history into the prompt and returns the assistant's content")
     void reply_withHistory_buildsPromptAndReturnsContent() {
         // Given
-        AssistantConversation conv = new AssistantConversation(messageStore, chatClient);
+        AssistantConversation conv = newConversation();
         when(messageStore.recent(anyInt())).thenReturn(List.of(
                 ChatMessageEntity.builder()
                         .author("odyld").message("Lebowski, are you here?")
@@ -61,7 +67,7 @@ class AssistantConversationTest {
     @DisplayName("Falls back to a '(no prior messages)' marker when history is empty")
     void reply_emptyHistory_usesEmptyMarker() {
         // Given
-        AssistantConversation conv = new AssistantConversation(messageStore, chatClient);
+        AssistantConversation conv = newConversation();
         when(messageStore.recent(anyInt())).thenReturn(List.of());
         when(chatClient.prompt()).thenReturn(requestSpec);
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
@@ -80,7 +86,7 @@ class AssistantConversationTest {
     @DisplayName("Returns null when the assistant call throws")
     void reply_chatClientThrows_returnsNull() {
         // Given
-        AssistantConversation conv = new AssistantConversation(messageStore, chatClient);
+        AssistantConversation conv = newConversation();
         when(chatClient.prompt()).thenThrow(new RuntimeException("AI is down"));
 
         // When
@@ -94,7 +100,7 @@ class AssistantConversationTest {
     @DisplayName("Still calls the assistant with the empty marker when history lookup fails")
     void reply_historyLookupFails_stillCallsAssistantWithEmptyMarker() {
         // Given
-        AssistantConversation conv = new AssistantConversation(messageStore, chatClient);
+        AssistantConversation conv = newConversation();
         when(messageStore.recent(anyInt())).thenThrow(new RuntimeException("db down"));
         when(chatClient.prompt()).thenReturn(requestSpec);
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
