@@ -14,7 +14,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.jdbc.Sql;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -107,28 +106,6 @@ class ChatMessagePersistenceIntegrationTest {
         assertThat(result)
                 .extracting(ChatMessageEntity::getMessage)
                 .containsExactly("rug", "coffee");
-    }
-
-    @Test
-    @DisplayName("Loads the newest message after the requested timestamp")
-    void latestMessage_recentRows_returnsNewestAfterSince() {
-        // Given
-        Instant older = Instant.parse("2026-04-28T10:00:00Z");
-        Instant newer = older.plusSeconds(120);
-        when(embeddingModel.embed("older message")).thenReturn(vector(0.5f, 0.5f));
-        when(embeddingModel.embed("newer message")).thenReturn(vector(0.6f, 0.4f));
-        messageStore.save("alice", "older message", older);
-        messageStore.save("bob", "newer message", newer);
-
-        // When
-        Optional<ChatMessageEntity> result = messageStore.latestMessage(older.minusSeconds(1));
-
-        // Then
-        assertThat(result)
-                .isPresent()
-                .get()
-                .extracting(ChatMessageEntity::getMessage)
-                .isEqualTo("newer message");
     }
 
     private static float[] vector(float first, float second) {

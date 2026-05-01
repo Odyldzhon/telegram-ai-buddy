@@ -1,7 +1,7 @@
 package com.odyldzhon.bot.service;
 
+ import com.odyldzhon.bot.ai.AssistantConversation;
 import com.odyldzhon.bot.persistence.MessageStore;
-import com.odyldzhon.bot.persistence.entity.ChatMessageEntity;
 import com.odyldzhon.bot.properties.AiTriggerProperties;
 import com.odyldzhon.bot.properties.BotProperties;
 import com.odyldzhon.bot.telegram.TelegramBot;
@@ -13,20 +13,19 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.scheduling.TaskScheduler;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -44,13 +43,7 @@ class ScheduledAiTriggerServiceTest {
     private TelegramBot telegramBot;
 
     @Mock
-    private ChatClient assistantChatClient;
-
-    @Mock
-    private ChatClient.ChatClientRequestSpec requestSpec;
-
-    @Mock
-    private ChatClient.CallResponseSpec callResponseSpec;
+    private AssistantConversation assistantConversation;
 
     @Mock
     private TaskScheduler taskScheduler;
@@ -106,11 +99,11 @@ class ScheduledAiTriggerServiceTest {
         ScheduledAiTriggerService service = service(properties(true, "42"), clockAtUkraine(localDateTime));
 
         // When
-        ReflectionTestUtils.invokeMethod(service, "runOnce");
+        service.runOnce();
 
         // Then
-        verify(messageStore, never()).latestMessage(any(Instant.class));
-        verify(assistantChatClient, never()).prompt();
+        verify(assistantConversation, never())
+                .proactiveHistoryReply(any(Instant.class), anyInt(), anyString());
         verify(telegramBot, never()).sendText(anyString(), anyString());
     }
 
@@ -119,75 +112,44 @@ class ScheduledAiTriggerServiceTest {
     void runOnce_atQuietHoursEnd_allowsSending() {
         // Given
         ScheduledAiTriggerService service = service(properties(true, "42"), clockAtUkraine("2026-04-28T08:00:00"));
-        when(messageStore.latestMessage(any(Instant.class))).thenReturn(Optional.empty());
-        mockAiReply("Morning update.");
+        when(assistantConversation.proactiveHistoryReply(any(Instant.class), anyInt(), anyString()))
+                .thenReturn("Morning update.");
         when(telegramBot.sendText("42", "Morning update.")).thenReturn(true);
 
         // When
-        ReflectionTestUtils.invokeMethod(service, "runOnce");
+        service.runOnce();
 
         // Then
         verify(telegramBot).sendText("42", "Morning update.");
     }
 
     @Test
-    @DisplayName("Uses recent-history prompt, sends the AI reply, and stores it")
+    @DisplayName("Delegates to AssistantConversation, sends the reply, and stores it")
     void runOnce_recentHumanMessage_sendsReplyAndStoresIt() {
         // Given
         ScheduledAiTriggerService service = service(properties(true, "42"));
-        ChatMessageEntity latest = ChatMessageEntity.builder()
-                .author("odyld")
-                .message("what happened?")
-                .createdAt(Instant.now())
-                .build();
-        when(messageStore.latestMessage(any(Instant.class))).thenReturn(Optional.of(latest));
-        mockAiReply("Could you check history, please?");
+        when(assistantConversation.proactiveHistoryReply(any(Instant.class), eq(30), eq("Lebowski")))
+                .thenReturn("Could you check history, please?");
         when(telegramBot.sendText("42", "Could you check history, please?")).thenReturn(true);
 
         // When
-        ReflectionTestUtils.invokeMethod(service, "runOnce");
+        service.runOnce();
 
         // Then
-        ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
-        verify(requestSpec).user(promptCaptor.capture());
-        assertThat(promptCaptor.getValue())
-                .contains("inspect recent chat history")
-                .contains("LIMIT 30");
         verify(telegramBot).sendText("42", "Could you check history, please?");
-        verify(messageStore).save(org.mockito.ArgumentMatchers.eq("Lebowski"),
-                org.mockito.ArgumentMatchers.eq("Could you check history, please?"), any(Instant.class));
+        verify(messageStore).save(eq("Lebowski"), eq("Could you check history, please?"), any(Instant.class));
     }
 
     @Test
-    @DisplayName("Uses the configured chat id and news prompt when chat history is quiet")
-    void runOnce_noRecentMessage_usesConfiguredChatIdAndNewsPrompt() {
-        // Given
-        ScheduledAiTriggerService service = service(properties(true, "99"));
-        when(messageStore.latestMessage(any(Instant.class))).thenReturn(Optional.empty());
-        mockAiReply("Daily news.");
-        when(telegramBot.sendText("99", "Daily news.")).thenReturn(true);
-
-        // When
-        ReflectionTestUtils.invokeMethod(service, "runOnce");
-
-        // Then
-        ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
-        verify(requestSpec).user(promptCaptor.capture());
-        assertThat(promptCaptor.getValue())
-                .contains("important news from today");
-        verify(telegramBot).sendText("99", "Daily news.");
-    }
-
-    @Test
-    @DisplayName("Does not send a message when the AI returns a blank reply")
+    @DisplayName("Does not send a message when the assistant returns null")
     void runOnce_blankAiReply_doesNotSendMessage() {
         // Given
         ScheduledAiTriggerService service = service(properties(true, "42"));
-        when(messageStore.latestMessage(any(Instant.class))).thenReturn(Optional.empty());
-        mockAiReply("  ");
+        when(assistantConversation.proactiveHistoryReply(any(Instant.class), anyInt(), anyString()))
+                .thenReturn(null);
 
         // When
-        ReflectionTestUtils.invokeMethod(service, "runOnce");
+        service.runOnce();
 
         // Then
         verify(telegramBot, never()).sendText(anyString(), anyString());
@@ -198,14 +160,33 @@ class ScheduledAiTriggerServiceTest {
     void sendDailyJoke_sendsJokeToConfiguredChatId() {
         // Given
         ScheduledAiTriggerService service = service(properties(true, "42"));
-        mockAiReply("Why don't scientists trust atoms? Because they make up everything!");
-        when(telegramBot.sendText("42", "Why don't scientists trust atoms? Because they make up everything!")).thenReturn(true);
+        String joke = "Why don't scientists trust atoms? Because they make up everything!";
+        when(assistantConversation.dailyJoke()).thenReturn(joke);
+        when(telegramBot.sendText("42", joke)).thenReturn(true);
 
         // When
         service.sendDailyJoke();
 
         // Then
-        verify(telegramBot).sendText("42", "Why don't scientists trust atoms? Because they make up everything!");
+        verify(telegramBot).sendText("42", joke);
+    }
+
+    @Test
+    @DisplayName("Sends a daily news digest for today's date in the configured zone")
+    void sendNews_sendsDigestForToday() {
+        // Given
+        ScheduledAiTriggerService service = service(properties(true, "42"));
+        String digest = "Today's headlines...";
+        when(assistantConversation.newsDigest(any())).thenReturn(digest);
+        when(telegramBot.sendText("42", digest)).thenReturn(true);
+
+        // When
+        service.sendNews();
+
+        // Then
+        verify(assistantConversation).newsDigest(LocalDateTime.parse("2026-04-28T09:00:00")
+                .atZone(UKRAINE_ZONE).toLocalDate());
+        verify(telegramBot).sendText("42", digest);
     }
 
     private ScheduledAiTriggerService service(AiTriggerProperties properties) {
@@ -214,7 +195,7 @@ class ScheduledAiTriggerServiceTest {
 
     private ScheduledAiTriggerService service(AiTriggerProperties properties, Clock clock) {
         ScheduledAiTriggerService service = new ScheduledAiTriggerService(
-                properties, botProperties(), messageStore, telegramBot, assistantChatClient, taskScheduler);
+                properties, botProperties(), messageStore, telegramBot, assistantConversation, taskScheduler);
         service.setClockForTesting(clock);
         return service;
     }
@@ -245,12 +226,5 @@ class ScheduledAiTriggerServiceTest {
 
     private static Instant instantAtUkraine(String localDateTime) {
         return LocalDateTime.parse(localDateTime).atZone(UKRAINE_ZONE).toInstant();
-    }
-
-    private void mockAiReply(String reply) {
-        when(assistantChatClient.prompt()).thenReturn(requestSpec);
-        when(requestSpec.user(anyString())).thenReturn(requestSpec);
-        when(requestSpec.call()).thenReturn(callResponseSpec);
-        when(callResponseSpec.content()).thenReturn(reply);
     }
 }

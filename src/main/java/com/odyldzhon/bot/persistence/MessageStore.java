@@ -45,10 +45,6 @@ public class MessageStore {
         return repository.findSimilar(toPgVectorLiteral(qv), limit);
     }
 
-    public Optional<ChatMessageEntity> latestMessage(Instant since) {
-        return repository.findTopByCreatedAtAfterOrderByCreatedAtDesc(since);
-    }
-
     public List<ChatMessageEntity> recent(int limit) {
         return repository.findRecent(PageRequest.of(0, Math.max(1, limit)));
     }
