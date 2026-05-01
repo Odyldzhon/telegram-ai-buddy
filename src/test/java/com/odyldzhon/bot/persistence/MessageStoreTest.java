@@ -14,7 +14,6 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -71,23 +70,6 @@ class MessageStoreTest {
         // Then
         assertThat(result).isSameAs(rows);
         verify(repository).findSimilar("[0.1,-2.0,3.25]", 7);
-    }
-
-    @Test
-    @DisplayName("Delegates latest-message lookup to the repository")
-    void latestMessage_sinceInstant_returnsRepositoryResult() {
-        // Given
-        MessageStore store = new MessageStore(repository, embeddingModel);
-        Instant since = Instant.parse("2026-04-28T00:00:00Z");
-        ChatMessageEntity entity = ChatMessageEntity.builder().id(10L).build();
-        when(repository.findTopByCreatedAtAfterOrderByCreatedAtDesc(since))
-                .thenReturn(Optional.of(entity));
-
-        // When
-        Optional<ChatMessageEntity> result = store.latestMessage(since);
-
-        // Then
-        assertThat(result).containsSame(entity);
     }
 
     @Test

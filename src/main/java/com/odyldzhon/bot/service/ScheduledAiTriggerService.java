@@ -2,7 +2,6 @@ package com.odyldzhon.bot.service;
 
 import com.odyldzhon.bot.configuration.ChatClientConfig;
 import com.odyldzhon.bot.persistence.MessageStore;
-import com.odyldzhon.bot.persistence.entity.ChatMessageEntity;
 import com.odyldzhon.bot.properties.AiTriggerProperties;
 import com.odyldzhon.bot.properties.BotProperties;
 import com.odyldzhon.bot.telegram.TelegramBot;
@@ -21,7 +20,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
-import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 
@@ -59,10 +57,16 @@ public class ScheduledAiTriggerService {
         this.clock = clock;
     }
 
-    @Scheduled(cron = "0 1 8 * * *", zone = "Europe/Kiev")
+    @Scheduled(cron = "0 0 8 * * *", zone = "Europe/Kiev")
     public void sendDailyJoke() {
         String joke = askAi(jokePrompt());
         sendAndSave(properties.chatId(), joke);
+    }
+
+    @Scheduled(cron = "0 5 8 * * *", zone = "Europe/Kiev")
+    public void sendNews() {
+        String news = askAi(newsPrompt());
+        sendAndSave(properties.chatId(), news);
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -98,19 +102,9 @@ public class ScheduledAiTriggerService {
             log.info("Skipping proactive AI trigger during quiet hours in {} timezone", properties.timeZone());
             return;
         }
-
         String chatId = properties.chatId();
-
         Instant since = now.minus(properties.historyWindow());
-        Optional<ChatMessageEntity> latestMessage = messageStore.latestMessage(since);
-
-        String prompt;
-        if (latestMessage.isPresent() && !botProperties.name().equals(latestMessage.get().getAuthor())) {
-            prompt = historyPrompt(since);
-        } else {
-            prompt = newsPrompt();
-        }
-
+        String prompt = historyPrompt(since);
         String reply = askAi(prompt);
         sendAndSave(chatId, reply);
     }
@@ -142,16 +136,13 @@ public class ScheduledAiTriggerService {
 
     private String newsPrompt() {
         return """
-                The Telegram chat has been quiet. Post ONE interesting comment based on important news from today (%s).
-
-                Use your available web/search grounding integration to look up current news before answering.
-                Prefer financial, technological, or politically important news from reputable sources.
+                Review important news from the previous 24 hours (as of %s) and post a digest to the Telegram chat.
+                Cover financial, technological, and politically important news from reputable sources.
 
                 Rules:
-                - Keep it conversational and concise: 2-4 sentences.
-                - Mention why the item matters, not just the headline.
-                - Do not include more than one link, and links are optional.
-                - If web/search grounding is unavailable, say that current-news lookup is unavailable and do not invent specific facts.
+                - Keep it conversational; length can vary depending on how many important items there are.
+                - For each item, mention why it matters, not just the headline.
+                - Links are optional; include them only when they add clear value.
                 """.formatted(LocalDate.now(clock.withZone(properties.timeZone())));
     }
 

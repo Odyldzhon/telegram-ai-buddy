@@ -89,12 +89,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
 
         if (storedText == null) return;
-
-        try {
-            messageStore.save(author, storedText, time);
-        } catch (Exception e) {
-            log.error("Failed to store message: {}", e.getMessage(), e);
-        }
+        messageStore.save(author, storedText, time);
 
         if (triggerMatcher.shouldReact(message, triggerSource)) {
             final String triggerText = triggerSource;

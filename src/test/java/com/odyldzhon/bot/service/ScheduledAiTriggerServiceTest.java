@@ -22,7 +22,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -109,7 +108,6 @@ class ScheduledAiTriggerServiceTest {
         ReflectionTestUtils.invokeMethod(service, "runOnce");
 
         // Then
-        verify(messageStore, never()).latestMessage(any(Instant.class));
         verify(assistantChatClient, never()).prompt();
         verify(telegramBot, never()).sendText(anyString(), anyString());
     }
@@ -119,7 +117,6 @@ class ScheduledAiTriggerServiceTest {
     void runOnce_atQuietHoursEnd_allowsSending() {
         // Given
         ScheduledAiTriggerService service = service(properties(true, "42"), clockAtUkraine("2026-04-28T08:00:00"));
-        when(messageStore.latestMessage(any(Instant.class))).thenReturn(Optional.empty());
         mockAiReply("Morning update.");
         when(telegramBot.sendText("42", "Morning update.")).thenReturn(true);
 
@@ -140,7 +137,6 @@ class ScheduledAiTriggerServiceTest {
                 .message("what happened?")
                 .createdAt(Instant.now())
                 .build();
-        when(messageStore.latestMessage(any(Instant.class))).thenReturn(Optional.of(latest));
         mockAiReply("Could you check history, please?");
         when(telegramBot.sendText("42", "Could you check history, please?")).thenReturn(true);
 
@@ -159,31 +155,10 @@ class ScheduledAiTriggerServiceTest {
     }
 
     @Test
-    @DisplayName("Uses the configured chat id and news prompt when chat history is quiet")
-    void runOnce_noRecentMessage_usesConfiguredChatIdAndNewsPrompt() {
-        // Given
-        ScheduledAiTriggerService service = service(properties(true, "99"));
-        when(messageStore.latestMessage(any(Instant.class))).thenReturn(Optional.empty());
-        mockAiReply("Daily news.");
-        when(telegramBot.sendText("99", "Daily news.")).thenReturn(true);
-
-        // When
-        ReflectionTestUtils.invokeMethod(service, "runOnce");
-
-        // Then
-        ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
-        verify(requestSpec).user(promptCaptor.capture());
-        assertThat(promptCaptor.getValue())
-                .contains("important news from today");
-        verify(telegramBot).sendText("99", "Daily news.");
-    }
-
-    @Test
     @DisplayName("Does not send a message when the AI returns a blank reply")
     void runOnce_blankAiReply_doesNotSendMessage() {
         // Given
         ScheduledAiTriggerService service = service(properties(true, "42"));
-        when(messageStore.latestMessage(any(Instant.class))).thenReturn(Optional.empty());
         mockAiReply("  ");
 
         // When
