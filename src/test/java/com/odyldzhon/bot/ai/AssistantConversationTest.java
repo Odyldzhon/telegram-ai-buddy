@@ -3,6 +3,7 @@ package com.odyldzhon.bot.ai;
 import com.odyldzhon.bot.persistence.MessageStore;
 import com.odyldzhon.bot.persistence.entity.ChatMessageEntity;
 import com.odyldzhon.bot.properties.AssistantProperties;
+ import com.odyldzhon.bot.telegram.util.MessageAuthors;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -80,6 +81,27 @@ class AssistantConversationTest {
 
         // Then
         assertThat(promptCaptor.getValue()).contains("(no prior messages)");
+    }
+
+    @Test
+    @DisplayName("Explains outside source authors to the assistant")
+    void reply_outsideSourceAuthor_explainsExternalContent() {
+        // Given
+        AssistantConversation conv = newConversation();
+        when(messageStore.recent(anyInt())).thenReturn(List.of());
+        when(chatClient.prompt()).thenReturn(requestSpec);
+        ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
+        when(requestSpec.user(promptCaptor.capture())).thenReturn(requestSpec);
+        when(requestSpec.call()).thenReturn(callResponseSpec);
+        when(callResponseSpec.content()).thenReturn("ok");
+
+        // When
+        conv.reply(MessageAuthors.OUTSIDE_SOURCE, "Forwarded external text");
+
+        // Then
+        assertThat(promptCaptor.getValue())
+                .contains("Author: outside source (forwarded/shared external content; not a chat member)")
+                .doesNotContain("Author: @outside source");
     }
 
     @Test

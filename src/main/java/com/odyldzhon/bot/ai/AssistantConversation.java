@@ -4,6 +4,7 @@ import com.odyldzhon.bot.configuration.ChatClientConfig;
 import com.odyldzhon.bot.persistence.MessageStore;
 import com.odyldzhon.bot.persistence.entity.ChatMessageEntity;
 import com.odyldzhon.bot.properties.AssistantProperties;
+import com.odyldzhon.bot.telegram.util.MessageAuthors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -38,6 +39,7 @@ public class AssistantConversation {
     public String reply(String author, String userMessage) {
         log.info("Trigger detected from {} – calling AI", author);
         String recentContext = renderRecentContext();
+        String authorForPrompt = renderAuthorForPrompt(author);
         return askAi("""
                 A Telegram user mentioned you directly.
                 
@@ -46,10 +48,10 @@ public class AssistantConversation {
                 only if you need older context or a specific lookup):
                 %s
                 
-                Author: @%s
+                Author: %s
                 Message:
                 %s
-                """.formatted(RECENT_CONTEXT_MESSAGES, recentContext, author, userMessage));
+                """.formatted(RECENT_CONTEXT_MESSAGES, recentContext, authorForPrompt, userMessage));
     }
 
     public String dailyJoke() {
@@ -125,6 +127,14 @@ public class AssistantConversation {
             Thread.currentThread().interrupt();
             return false;
         }
+    }
+
+
+    private String renderAuthorForPrompt(String author) {
+        if (MessageAuthors.OUTSIDE_SOURCE.equals(author)) {
+            return "%s (forwarded/shared external content; not a chat member)".formatted(author);
+        }
+        return author == null ? "unknown" : author;
     }
 
 

@@ -81,7 +81,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             if (description != null) {
                 storedText = description
                         + (caption != null && !caption.isBlank() ? " | caption: " + caption : "");
-                triggerSource = caption;
+                triggerSource = storedText;
             }
         } else if (message.hasText()) {
             storedText    = message.getText();
