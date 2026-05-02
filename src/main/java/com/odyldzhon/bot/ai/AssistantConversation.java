@@ -58,6 +58,7 @@ public class AssistantConversation {
 
     public String newsDigest(LocalDate today) {
         return askAi("""
+                This is scheduled trigger to post a news to telegram group.
                 Review important news from the previous 24 hours (as of %s) and post a digest to the Telegram chat.
                 Cover financial, technological, and politically important news from reputable sources.
 
