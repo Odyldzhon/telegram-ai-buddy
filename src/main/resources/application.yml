@@ -29,7 +29,6 @@ spring:
         chat:
           options:
             model: gemini-3.1-flash-lite-preview
-            temperature: 0.7
             google-search-retrieval: true
             max-output-tokens: 1000
             include-server-side-tool-invocations: true
