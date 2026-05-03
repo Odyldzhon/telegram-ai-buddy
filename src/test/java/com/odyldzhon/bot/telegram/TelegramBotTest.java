@@ -5,6 +5,7 @@ import com.odyldzhon.bot.ai.ImageDescriber;
 import com.odyldzhon.bot.persistence.MessageStore;
 import com.odyldzhon.bot.properties.AiTriggerProperties;
 import com.odyldzhon.bot.properties.BotProperties;
+import com.odyldzhon.bot.telegram.util.MessageAuthors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,8 @@ import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
+import org.telegram.telegrambots.meta.api.objects.messageorigin.MessageOriginChannel;
+import org.telegram.telegrambots.meta.api.objects.messageorigin.MessageOriginUser;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -117,6 +120,42 @@ class TelegramBotTest {
 
         // Then
         verify(messageStore).save("odyld", "Hello room", Instant.ofEpochSecond(1_777_398_400));
+        verify(assistantConversation, never()).reply(any(), any());
+    }
+
+    @Test
+    @DisplayName("Stores forwarded/shared text messages as outside source")
+    void onUpdateReceived_forwardedText_storesOutsideSourceAuthor() {
+        // Given
+        TelegramBot bot = newBot();
+        Update update = textUpdate(123L, "odyld", "Forwarded external text", 1_777_398_405);
+        update.getMessage().setForwardOrigin(new MessageOriginChannel());
+
+        // When
+        bot.onUpdateReceived(update);
+
+        // Then
+        verify(messageStore).save(MessageAuthors.OUTSIDE_SOURCE, "Forwarded external text",
+                Instant.ofEpochSecond(1_777_398_405));
+        verify(assistantConversation, never()).reply(any(), any());
+    }
+
+    @Test
+    @DisplayName("Stores self-forwarded text messages under the posting member")
+    void onUpdateReceived_selfForwardedText_storesMemberAuthor() {
+        // Given
+        TelegramBot bot = newBot();
+        Update update = textUpdate(123L, "odyld", "My own forwarded text", 1_777_398_406);
+        MessageOriginUser origin = new MessageOriginUser();
+        origin.setSenderUser(user(1L, "odyld", "First"));
+        update.getMessage().setForwardOrigin(origin);
+
+        // When
+        bot.onUpdateReceived(update);
+
+        // Then
+        verify(messageStore).save("odyld", "My own forwarded text",
+                Instant.ofEpochSecond(1_777_398_406));
         verify(assistantConversation, never()).reply(any(), any());
     }
 
@@ -320,9 +359,7 @@ class TelegramBotTest {
     }
 
     private static Update textUpdate(long chatId, String username, String text, int epochSecond) {
-        User user = new User();
-        user.setUserName(username);
-        user.setFirstName("First");
+        User user = user(1L, username, "First");
 
         Chat chat = new Chat();
         chat.setId(chatId);
@@ -336,6 +373,14 @@ class TelegramBotTest {
         Update update = new Update();
         update.setMessage(message);
         return update;
+    }
+
+    private static User user(Long id, String username, String firstName) {
+        User user = new User();
+        user.setId(id);
+        user.setUserName(username);
+        user.setFirstName(firstName);
+        return user;
     }
 
     private record SentMessage(String chatId, String text) {

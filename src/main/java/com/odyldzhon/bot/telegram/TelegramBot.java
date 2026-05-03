@@ -6,6 +6,7 @@ import com.odyldzhon.bot.persistence.MessageStore;
 import com.odyldzhon.bot.properties.AiTriggerProperties;
 import com.odyldzhon.bot.properties.BotProperties;
 import com.odyldzhon.bot.telegram.util.MessageAuthors;
+import com.odyldzhon.bot.telegram.util.MessageLinks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -81,14 +82,14 @@ public class TelegramBot extends TelegramLongPollingBot {
             if (description != null) {
                 storedText = description
                         + (caption != null && !caption.isBlank() ? " | caption: " + caption : "");
-                triggerSource = caption;
             }
         } else if (message.hasText()) {
             storedText    = message.getText();
-            triggerSource = storedText;
         }
 
         if (storedText == null) return;
+        storedText = MessageLinks.appendLinks(storedText, message);
+        triggerSource = storedText;
         messageStore.save(author, storedText, time);
 
         if (triggerMatcher.shouldReact(message, triggerSource)) {
