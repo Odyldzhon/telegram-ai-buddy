@@ -28,9 +28,9 @@ spring:
         api-key: "${GEMINI_API_KEY}"
         chat:
           options:
-            model: gemini-3.1-flash-lite-preview
+            model: gemini-3-flash-preview
             google-search-retrieval: true
-            max-output-tokens: 1000
+            max-output-tokens: 3000
             include-server-side-tool-invocations: true
         embedding:
           api-key: "${GEMINI_API_KEY}"
