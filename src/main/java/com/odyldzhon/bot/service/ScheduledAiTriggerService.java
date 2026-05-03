@@ -2,6 +2,7 @@ package com.odyldzhon.bot.service;
 
 import com.odyldzhon.bot.ai.AssistantConversation;
 import com.odyldzhon.bot.persistence.MessageStore;
+import com.odyldzhon.bot.persistence.entity.ChatMessageEntity;
 import com.odyldzhon.bot.properties.AiTriggerProperties;
 import com.odyldzhon.bot.properties.BotProperties;
 import com.odyldzhon.bot.telegram.TelegramBot;
@@ -19,6 +20,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 
@@ -98,6 +101,11 @@ public class ScheduledAiTriggerService {
         Instant now = Instant.now(clock);
         if (isQuietTime(now)) {
             log.info("Skipping proactive AI trigger during quiet hours in {} timezone", properties.timeZone());
+            return;
+        }
+        List<ChatMessageEntity> latestMessage = messageStore.recent(1);
+        if (!latestMessage.isEmpty() && botProperties.name().equals(latestMessage.getFirst().getAuthor())) {
+            log.info("No updates, so no activity");
             return;
         }
         Instant since = now.minus(properties.historyWindow());

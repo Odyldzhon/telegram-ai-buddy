@@ -1,7 +1,8 @@
 package com.odyldzhon.bot.service;
 
- import com.odyldzhon.bot.ai.AssistantConversation;
+import com.odyldzhon.bot.ai.AssistantConversation;
 import com.odyldzhon.bot.persistence.MessageStore;
+import com.odyldzhon.bot.persistence.entity.ChatMessageEntity;
 import com.odyldzhon.bot.properties.AiTriggerProperties;
 import com.odyldzhon.bot.properties.BotProperties;
 import com.odyldzhon.bot.telegram.TelegramBot;
@@ -20,6 +21,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -121,6 +123,26 @@ class ScheduledAiTriggerServiceTest {
 
         // Then
         verify(telegramBot).sendText("42", "Morning update.");
+    }
+
+    @Test
+    @DisplayName("Skips proactive messages when latest stored message is from the bot")
+    void runOnce_latestMessageFromBot_skipsWithoutSending() {
+        // Given
+        ScheduledAiTriggerService service = service(properties(true, "42"));
+        when(messageStore.recent(1)).thenReturn(List.of(ChatMessageEntity.builder()
+                .author("Lebowski")
+                .build()));
+
+        // When
+        service.runOnce();
+
+        // Then
+        verify(messageStore).recent(1);
+        verify(assistantConversation, never())
+                .proactiveHistoryReply(any(Instant.class), anyInt(), anyString());
+        verify(telegramBot, never()).sendText(anyString(), anyString());
+        verify(messageStore, never()).save(anyString(), anyString(), any(Instant.class));
     }
 
     @Test
