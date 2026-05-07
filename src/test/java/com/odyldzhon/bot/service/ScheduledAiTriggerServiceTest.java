@@ -233,6 +233,8 @@ class ScheduledAiTriggerServiceTest {
     private static AiTriggerProperties properties(boolean enabled, String chatId, Duration minDelay, Duration maxDelay) {
         return new AiTriggerProperties(
                 enabled,
+                true,
+                true,
                 chatId,
                 Duration.ofMinutes(30),
                 minDelay,
