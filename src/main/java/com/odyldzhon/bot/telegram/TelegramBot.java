@@ -30,6 +30,7 @@ import java.util.List;
 @Slf4j
 public class TelegramBot extends TelegramLongPollingBot {
 
+    public static final int MAX_MESSAGE_SIZE = 4096;
     private final BotProperties botProperties;
     private final AiTriggerProperties aiTriggerProperties;
     private final MessageStore messageStore;
@@ -139,14 +140,14 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     public boolean sendText(String chatId, String text) {
-        SendMessage msg = new SendMessage();
-        msg.setChatId(chatId);
-        msg.setText(text);
         try {
-            execute(msg);
-            if (text.length() > 4096) {
-                sendText(chatId, text.substring(4096));
+            if (text.length() > MAX_MESSAGE_SIZE) {
+                sendText(chatId, text.substring(MAX_MESSAGE_SIZE));
             }
+            SendMessage msg = new SendMessage();
+            msg.setChatId(chatId);
+            msg.setText(text.substring(0, Math.min(text.length(), MAX_MESSAGE_SIZE)));
+            execute(msg);
             return true;
         } catch (TelegramApiException e) {
             log.error("Failed to send message: {}", e.getMessage(), e);
