@@ -123,6 +123,30 @@ class PropertiesTest {
     }
 
     @Test
+    @DisplayName("Stores assistant configuration values")
+    void assistantProperties_constructor_returnsConfiguredValues() {
+        // Given
+        AssistantProperties properties = new AssistantProperties(Duration.ofSeconds(1), "Configured persona");
+
+        // When / Then
+        assertThat(properties.retryBackoff()).isEqualTo(Duration.ofSeconds(1));
+        assertThat(properties.personaPrompt()).isEqualTo("Configured persona");
+    }
+
+    @Test
+    @DisplayName("Fails Spring context startup when assistant persona prompt is blank")
+    void assistantProperties_blankPersonaPrompt_failsContextStartup() {
+        new ApplicationContextRunner()
+                .withUserConfiguration(AssistantPropertiesConfiguration.class)
+                .withPropertyValues(
+                        "bot.assistant.retry-backoff=1s",
+                        "bot.assistant.persona-prompt= ")
+                .run(context -> assertThat(context.getStartupFailure())
+                        .isNotNull()
+                        .hasStackTraceContaining("personaPrompt"));
+    }
+
+    @Test
     @DisplayName("Binds native Google Search retrieval option for Gemini chat")
     void googleGenAiChatProperties_googleSearchRetrieval_bindsToOptions() {
         new ApplicationContextRunner()
@@ -141,6 +165,11 @@ class PropertiesTest {
     @Configuration(proxyBeanMethods = false)
     @EnableConfigurationProperties(AiTriggerProperties.class)
     static class AiTriggerPropertiesConfiguration {
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    @EnableConfigurationProperties(AssistantProperties.class)
+    static class AssistantPropertiesConfiguration {
     }
 
     @Configuration(proxyBeanMethods = false)
