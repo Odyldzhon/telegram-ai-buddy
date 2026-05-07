@@ -18,6 +18,8 @@ digest), and call its own database via tool-calling to look up older context.
   - the bot's name is mentioned,
   - someone replies to one of the bot's messages,
   - or the chat has been idle past `BOT_AI_TRIGGER_IDLE_PARTICIPATION_THRESHOLD`.
+  - Or, set `BOT_AI_TRIGGER_REPLY_TO_ANY=true` to reply to **every** message
+    in the chat (useful for 1-on-1 chats).
 - **Long-term chat memory** — every message is stored in Postgres with a
   `vector(1536)` embedding (HNSW index for cosine similarity).
 - **Image understanding** — incoming photos are downloaded and described by

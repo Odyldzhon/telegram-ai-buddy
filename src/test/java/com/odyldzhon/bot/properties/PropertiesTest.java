@@ -78,6 +78,7 @@ class PropertiesTest {
                 true,
                 true,
                 true,
+                 false,
                 "42",
                 Duration.ofHours(2),
                 Duration.ofMinutes(5),

@@ -115,10 +115,26 @@ class TriggerMatcherTest {
         assertThat(matcher.shouldReact(new Message(), "plain chatter")).isTrue();
     }
 
+    @Test
+    @DisplayName("shouldReact returns true for any message when reply-to-any is enabled")
+    void shouldReact_replyToAnyEnabled_alwaysReacts() {
+        MutableClock clock = new MutableClock(T0);
+        BotProperties botProps = new BotProperties(BOT_USERNAME, "123456:test-token", BOT_NAME, "English");
+        AiTriggerProperties aiProps = new AiTriggerProperties(
+                false, false, false, true, "1",
+                Duration.ofMinutes(30), Duration.ofMinutes(1), Duration.ofMinutes(1),
+                30, ZoneId.of("UTC"), Duration.ofHours(2));
+        TriggerMatcher matcher = new TriggerMatcher(botProps, aiProps, clock);
+
+        // Plain chatter, no mention, no reply-to-bot, not idle — would normally be ignored.
+        assertThat(matcher.shouldReact(new Message(), "plain chatter")).isTrue();
+        assertThat(matcher.shouldReact(new Message(), "another one")).isTrue();
+    }
+
     private static TriggerMatcher matcher(Duration idleThreshold, Clock clock) {
         BotProperties botProps = new BotProperties(BOT_USERNAME, "123456:test-token", BOT_NAME, "English");
         AiTriggerProperties aiProps = new AiTriggerProperties(
-                false, false, false, "1",
+                false, false, false, false, "1",
                 Duration.ofMinutes(30), Duration.ofMinutes(1), Duration.ofMinutes(1),
                 30, ZoneId.of("UTC"), idleThreshold);
         return new TriggerMatcher(botProps, aiProps, clock);

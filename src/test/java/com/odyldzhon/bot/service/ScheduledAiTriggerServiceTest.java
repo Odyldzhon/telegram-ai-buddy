@@ -235,6 +235,7 @@ class ScheduledAiTriggerServiceTest {
                 enabled,
                 true,
                 true,
+                false,
                 chatId,
                 Duration.ofMinutes(30),
                 minDelay,

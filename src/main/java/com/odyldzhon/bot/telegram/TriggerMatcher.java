@@ -30,7 +30,8 @@ public class TriggerMatcher {
     }
 
     public boolean shouldReact(Message message, String triggerText) {
-        boolean react = mentionsBot(triggerText)
+        boolean react = aiTriggerProperties.replyToAny()
+                || mentionsBot(triggerText)
                 || isReplyToBot(message)
                 || isIdle();
         if (react) {
