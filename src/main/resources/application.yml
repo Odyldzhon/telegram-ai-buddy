@@ -11,6 +11,7 @@ bot:
     enabled: "${BOT_AI_TRIGGER_ENABLED}"
     send-daily-joke-enabled: "${BOT_AI_TRIGGER_SEND_DAILY_JOKE_ENABLED}"
     send-news-enabled: "${BOT_AI_TRIGGER_SEND_NEWS_ENABLED}"
+    reply-to-any: "${BOT_AI_TRIGGER_REPLY_TO_ANY}"
     chat-id: "${BOT_AI_TRIGGER_CHAT_ID}"
     history-window: "${BOT_AI_TRIGGER_HISTORY_WINDOW}"
     min-delay: "${BOT_AI_TRIGGER_MIN_DELAY}"
