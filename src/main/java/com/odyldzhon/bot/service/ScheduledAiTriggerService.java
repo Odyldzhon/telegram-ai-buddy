@@ -61,11 +61,19 @@ public class ScheduledAiTriggerService {
 
     @Scheduled(cron = "0 0 8 * * *", zone = "Europe/Kiev")
     public void sendDailyJoke() {
+        if (!properties.sendDailyJokeEnabled()) {
+            log.info("Daily joke trigger is disabled");
+            return;
+        }
         sendAndSave(properties.chatId(), assistantConversation.dailyJoke());
     }
 
     @Scheduled(cron = "0 5 8 * * *", zone = "Europe/Kiev")
     public void sendNews() {
+        if (!properties.sendNewsEnabled()) {
+            log.info("News trigger is disabled");
+            return;
+        }
         sendAndSave(properties.chatId(),
                 assistantConversation.newsDigest(LocalDate.now(clock.withZone(properties.timeZone()))));
     }

@@ -9,17 +9,18 @@
 #   docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --build
 #
 # Postgres deliberately exposes NO host port – it is only reachable from
-# other services on the internal `botnet` bridge network (i.e. the app).
+# other services on the internal bridge network (i.e. the app).
 
-name: bot
+name: ${COMPOSE_PROJECT_NAME}
 
 services:
 
   postgres:
     image: pgvector/pgvector:pg17        # Postgres 17 + pgvector extension
-    container_name: bot-postgres
+    container_name:      ${DB_HOST}
     restart: unless-stopped
     environment:
+      hostname:          ${DB_HOST}
       POSTGRES_DB:       ${DB_NAME}
       POSTGRES_USER:     ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -27,11 +28,11 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ../../src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     networks:
-      - botnet
+      - default
     # NOTE: no `ports:` block on purpose – the DB is private to the compose
     # network. `expose` documents the internal port without publishing it.
     expose:
-      - "5432"
+      - "${DB_PORT}"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
@@ -43,7 +44,7 @@ services:
       context: ../..              # project root, so Maven sees pom.xml & src/
       dockerfile: infra/docker/Dockerfile
     image: bot-app:latest
-    container_name: bot-app
+    container_name: bot-app-${BOT_AI_TRIGGER_CHAT_ID}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -58,6 +59,8 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       # ── Bot Config ──────────────────────────────────────────────────────
       BOT_AI_TRIGGER_ENABLED:              ${BOT_AI_TRIGGER_ENABLED}
+      BOT_AI_TRIGGER_SEND_DAILY_JOKE_ENABLED: ${BOT_AI_TRIGGER_SEND_DAILY_JOKE_ENABLED}
+      BOT_AI_TRIGGER_SEND_NEWS_ENABLED:    ${BOT_AI_TRIGGER_SEND_NEWS_ENABLED}
       BOT_AI_TRIGGER_CHAT_ID:              ${BOT_AI_TRIGGER_CHAT_ID}
       BOT_AI_TRIGGER_HISTORY_WINDOW:       ${BOT_AI_TRIGGER_HISTORY_WINDOW}
       BOT_AI_TRIGGER_MIN_DELAY:            ${BOT_AI_TRIGGER_MIN_DELAY}
@@ -68,21 +71,23 @@ services:
       BOT_ASSISTANT_RETRY_BACKOFF:         ${BOT_ASSISTANT_RETRY_BACKOFF}
       BOT_ASSISTANT_PERSONA_PROMPT:        ${BOT_ASSISTANT_PERSONA_PROMPT}
       # ── Database (resolved by Spring via application.yml) ───────────────
-      DB_HOST:     postgres        # docker-internal DNS name
-      DB_PORT:     "5432"
+      DB_HOST:     ${DB_HOST}        # docker-internal DNS name
+      DB_PORT:     ${DB_PORT}
       DB_NAME:     ${DB_NAME}
       DB_USER:     ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       JAVA_OPTS:   ${JAVA_OPTS}
     networks:
-      - botnet
+      - default
 
 networks:
-  botnet:
+  default:
+    name: ${DOCKER_NETWORK}
     driver: bridge
 
 volumes:
   pgdata:
+    name: ${DB_VOLUME}
 
 
 

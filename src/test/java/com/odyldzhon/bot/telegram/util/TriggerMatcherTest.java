@@ -118,7 +118,7 @@ class TriggerMatcherTest {
     private static TriggerMatcher matcher(Duration idleThreshold, Clock clock) {
         BotProperties botProps = new BotProperties(BOT_USERNAME, "123456:test-token", BOT_NAME, "English");
         AiTriggerProperties aiProps = new AiTriggerProperties(
-                false, "1",
+                false, false, false, "1",
                 Duration.ofMinutes(30), Duration.ofMinutes(1), Duration.ofMinutes(1),
                 30, ZoneId.of("UTC"), idleThreshold);
         return new TriggerMatcher(botProps, aiProps, clock);

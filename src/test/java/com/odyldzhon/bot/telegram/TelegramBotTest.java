@@ -382,6 +382,8 @@ class TelegramBotTest {
     private static AiTriggerProperties aiTriggerProperties(Duration idleThreshold) {
         return new AiTriggerProperties(
                 false,
+                false,
+                false,
                 ALLOWED_CHAT_ID,
                 Duration.ofMinutes(30),
                 Duration.ofMinutes(1),

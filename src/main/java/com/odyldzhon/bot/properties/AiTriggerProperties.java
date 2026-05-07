@@ -12,6 +12,8 @@ import java.time.ZoneId;
 @ConfigurationProperties(prefix = "bot.ai-trigger")
 public record AiTriggerProperties(
         boolean enabled,
+        boolean sendDailyJokeEnabled,
+        boolean sendNewsEnabled,
         @NotBlank String chatId,
         Duration historyWindow,
         Duration minDelay,

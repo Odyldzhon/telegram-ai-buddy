@@ -61,7 +61,7 @@ class AssistantConversationTest {
                 .contains("Recent chat history")
                 .contains("odyld: Lebowski, are you here?")
                 .contains("walter: Earlier message")
-                .contains("Author: @odyld");
+                .contains("Author: odyld");
     }
 
     @Test
