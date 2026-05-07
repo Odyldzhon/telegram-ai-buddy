@@ -11,7 +11,7 @@
 # Postgres deliberately exposes NO host port – it is only reachable from
 # other services on the internal bridge network (i.e. the app).
 
-name: bot
+name: ${COMPOSE_PROJECT_NAME}
 
 services:
 
