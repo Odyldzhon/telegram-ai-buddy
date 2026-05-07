@@ -87,6 +87,7 @@ networks:
 
 volumes:
   pgdata:
+    name: ${DB_VOLUME}
 
 
 
