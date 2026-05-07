@@ -10,7 +10,7 @@
 
   <groupId>com.odyldzhon</groupId>
   <artifactId>bot</artifactId>
-  <version>13</version>
+  <version>14-SNAPSHOT</version>
 
   <properties>
     <java.version>21</java.version>
