@@ -15,6 +15,7 @@ bot:
 
   assistant:
     retry-backoff: 1s
+    persona-prompt: Test assistant persona prompt.
 
 spring:
   main:

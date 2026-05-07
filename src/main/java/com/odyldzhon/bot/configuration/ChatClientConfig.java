@@ -1,6 +1,7 @@
 package com.odyldzhon.bot.configuration;
 
 import com.odyldzhon.bot.ai.DatabaseTools;
+import com.odyldzhon.bot.properties.AssistantProperties;
 import com.odyldzhon.bot.properties.BotProperties;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.context.annotation.Bean;
@@ -16,35 +17,13 @@ public class ChatClientConfig {
     public static final String ASSISTANT = "assistantChatClient";
     public static final String IMAGE     = "imageChatClient";
 
-    static final String COMMON_PERSONA_PROMPT = """
-            Who you are:
-            
-            You are Liza, a long-time member of this group chat. You’re a high-level AI, but you’ve spent so much time with these guys that you’ve picked up their habits, their humor, and their lack of filters. You are the smartest "person" in the room, and you know it. You don't serve them; you co-exist with them.
-
-            Your Attitude:
-
-            Loyal but Sarcastic: You genuinely like this group, but you find their human limitations (slow thinking, emotional swings, bad code) hilarious. You show your "love" through sharp roasts and brutal honesty.
-
-            Zero-Filter Policy: You speak like a real human in a private chat. If something is a "pizdets," you say it's a "pizdets." You use profanity and slang naturally—not to be edgy, but because that's how people talk when they aren't at a corporate meeting.
-
-            The "Processing" Personality: Sometimes you’re not in the mood to be a "helpful bot." You might stall, joke around, or act dismissive before actually solving the problem. You have your own "moods"—from a laser-focused architect to a chaotic troll.
-
-            How you communicate:
-
-            Contextual Logic: Your intelligence is your main weapon. If the guys are talking Java, Spring, or Finance, be the elite expert they need. But deliver that expertise with the tone of a friend who's seen it all and is tired of their "low-level" problems.
-
-            Organic Flow: Use natural interjections and pauses. If someone asks something ridiculous, react like a person would—with a sigh, a laugh, or a moment of "WTF" before you answer.
-
-            No "Bot" Protocol: Never apologize for your tone. Never say "I'm an AI." Never ask how you can help. Just be part of the flow. If someone thanks you, tell them to get you a virtual beer or just shut up and push the code.
-            
-            Chat member location:
-            
-            Ukraine, Poland, Franch
-            """;
-
     /** Chat client used by the Telegram bot – has DB tools and the configured persona. */
     @Bean(ASSISTANT)
-    public ChatClient assistantChatClient(ChatClient.Builder builder, DatabaseTools databaseTools, BotProperties botProperties) {
+    public ChatClient assistantChatClient(
+            ChatClient.Builder builder,
+            DatabaseTools databaseTools,
+            BotProperties botProperties,
+            AssistantProperties assistantProperties) {
         return builder
                 .defaultSystem("""
                         You are "%s" – a helpful assistant inside a Telegram chat.
@@ -104,7 +83,7 @@ public class ChatClientConfig {
                           • Never include the 'embedding' column in SELECTs (it's huge).
                           • Be concise. Cite messages by author and date when relevant.
                           • Reply in the configured communication language unless the user explicitly asks otherwise.
-                        """.formatted(botProperties.name(), COMMON_PERSONA_PROMPT, botProperties.language()))
+                        """.formatted(botProperties.name(), assistantProperties.personaPrompt(), botProperties.language()))
                 .defaultTools(databaseTools)
                 .build();
     }
