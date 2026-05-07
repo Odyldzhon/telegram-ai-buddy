@@ -344,12 +344,12 @@ class TelegramBotTest {
         // When
         bot.sendText(chatId, longText);
 
-        // Then: two SendMessage calls, one per chunk (recursion order is implementation-detail).
+        // Then: two SendMessage calls in order — head first, then tail.
         ArgumentCaptor<SendMessage> sent = ArgumentCaptor.forClass(SendMessage.class);
         verify(bot, times(2)).execute(sent.capture());
         assertThat(sent.getAllValues())
                 .extracting(SendMessage::getChatId, SendMessage::getText)
-                .containsExactlyInAnyOrder(
+                .containsExactly(
                         Tuple.tuple(chatId, longText.substring(0, 4096)),
                         Tuple.tuple(chatId, longText.substring(4096)));
     }
