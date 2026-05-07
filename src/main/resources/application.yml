@@ -31,7 +31,7 @@ spring:
           options:
             model: gemini-3-flash-preview
             google-search-retrieval: true
-            max-output-tokens: 3000
+            max-output-tokens: 10000
             include-server-side-tool-invocations: true
         embedding:
           api-key: "${GEMINI_API_KEY}"
