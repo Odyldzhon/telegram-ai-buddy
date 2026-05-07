@@ -141,13 +141,14 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     public boolean sendText(String chatId, String text) {
         try {
-            if (text.length() > MAX_MESSAGE_SIZE) {
-                sendText(chatId, text.substring(MAX_MESSAGE_SIZE));
+            int length = text.length();
+            for (int start = 0; start < length; start += MAX_MESSAGE_SIZE) {
+                int end = Math.min(start + MAX_MESSAGE_SIZE, length);
+                SendMessage msg = new SendMessage();
+                msg.setChatId(chatId);
+                msg.setText(text.substring(start, end));
+                execute(msg);
             }
-            SendMessage msg = new SendMessage();
-            msg.setChatId(chatId);
-            msg.setText(text.substring(0, Math.min(text.length(), MAX_MESSAGE_SIZE)));
-            execute(msg);
             return true;
         } catch (TelegramApiException e) {
             log.error("Failed to send message: {}", e.getMessage(), e);
