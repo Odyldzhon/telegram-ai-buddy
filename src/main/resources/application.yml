@@ -19,6 +19,7 @@ bot:
 
   assistant:
     retry-backoff: "${BOT_ASSISTANT_RETRY_BACKOFF}"
+    persona-prompt: "${BOT_ASSISTANT_PERSONA_PROMPT}"
 
 # ─── Spring AI / Google Gemini ───────────────────────────────────────────────
 spring:

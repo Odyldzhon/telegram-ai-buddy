@@ -66,6 +66,7 @@ services:
       BOT_AI_TRIGGER_TIME_ZONE:            ${BOT_AI_TRIGGER_TIME_ZONE}
       BOT_AI_TRIGGER_IDLE_PARTICIPATION_THRESHOLD: ${BOT_AI_TRIGGER_IDLE_PARTICIPATION_THRESHOLD}
       BOT_ASSISTANT_RETRY_BACKOFF:         ${BOT_ASSISTANT_RETRY_BACKOFF}
+      BOT_ASSISTANT_PERSONA_PROMPT:        ${BOT_ASSISTANT_PERSONA_PROMPT}
       # ── Database (resolved by Spring via application.yml) ───────────────
       DB_HOST:     postgres        # docker-internal DNS name
       DB_PORT:     "5432"

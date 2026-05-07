@@ -1,6 +1,7 @@
 package com.odyldzhon.bot.configuration;
 
 import com.odyldzhon.bot.ai.DatabaseTools;
+import com.odyldzhon.bot.properties.AssistantProperties;
 import com.odyldzhon.bot.properties.BotProperties;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.chat.client.ChatClient;
+
+import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -37,12 +40,16 @@ class ChatClientConfigTest {
         when(builder.build()).thenReturn(chatClient);
 
         // When
-        ChatClient result = config.assistantChatClient(builder, databaseTools, botProperties());
+        ChatClient result = config.assistantChatClient(builder, databaseTools, botProperties(), assistantProperties());
 
         // Then
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
         verify(builder).defaultSystem(promptCaptor.capture());
         verify(builder).defaultTools(databaseTools);
+        assertThat(promptCaptor.getValue())
+                .contains("Test persona from environment")
+                .contains("Communication language: English")
+                .doesNotContain("COMMON_PERSONA_PROMPT");
         assertThat(result).isSameAs(chatClient);
     }
 
@@ -69,5 +76,9 @@ class ChatClientConfigTest {
 
     private static BotProperties botProperties() {
         return new BotProperties("test_bot", "123456:test-token", "Lebowski", "English");
+    }
+
+    private static AssistantProperties assistantProperties() {
+        return new AssistantProperties(Duration.ZERO, "Test persona from environment");
     }
 }
