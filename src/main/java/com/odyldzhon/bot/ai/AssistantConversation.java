@@ -61,8 +61,9 @@ public class AssistantConversation {
     public String newsDigest(LocalDate today) {
         return askAi("""
                 This is scheduled trigger to post a news to telegram group.
-                Review important news from the previous 24 hours (as of %s) and post a digest to the Telegram chat.
+                Use network search abilities to view important news the last 24 hours (as of %s) and post a digest to the Telegram chat.
                 Cover financial, technological, and politically important news from reputable sources.
+                Make sure that you not fetch news from the cache or outdated information.
 
                 Rules:
                 - Keep it conversational; length can vary depending on how many important items there are.
