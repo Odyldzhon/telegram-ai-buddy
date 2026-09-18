@@ -32,6 +32,18 @@ class TriggerMatcherTest {
     }
 
     @Test
+    @DisplayName("Reacts to Cyrillic bot name with punctuation and varied whitespace")
+    void shouldReact_cyrillicMentionWithPunctuation_returnsTrue() {
+        TriggerMatcher matcher = matcher("Лиза", Duration.ofHours(2), Clock.fixed(T0, ZoneOffset.UTC));
+
+        assertThat(matcher.shouldReact(new Message(), "Лиза, привет")).isTrue();
+        assertThat(matcher.shouldReact(new Message(), "как дела, лиза?")).isTrue();
+        assertThat(matcher.shouldReact(new Message(), "лиза")).isTrue();
+        assertThat(matcher.shouldReact(new Message(), "ну\tлиза\nскажи")).isTrue();
+        assertThat(matcher.shouldReact(new Message(), "лизавета тут")).isFalse();
+    }
+
+    @Test
     @DisplayName("Reacts when the message is a reply to the bot's own message")
     void shouldReact_replyToBot_returnsTrue() {
         TriggerMatcher matcher = matcher(Duration.ofHours(2), Clock.fixed(T0, ZoneOffset.UTC));
@@ -132,7 +144,11 @@ class TriggerMatcherTest {
     }
 
     private static TriggerMatcher matcher(Duration idleThreshold, Clock clock) {
-        BotProperties botProps = new BotProperties(BOT_USERNAME, "123456:test-token", BOT_NAME, "English");
+        return matcher(BOT_NAME, idleThreshold, clock);
+    }
+
+    private static TriggerMatcher matcher(String botName, Duration idleThreshold, Clock clock) {
+        BotProperties botProps = new BotProperties(BOT_USERNAME, "123456:test-token", botName, "English");
         AiTriggerProperties aiProps = new AiTriggerProperties(
                 false, false, false, false, "1",
                 Duration.ofMinutes(30), Duration.ofMinutes(1), Duration.ofMinutes(1),
