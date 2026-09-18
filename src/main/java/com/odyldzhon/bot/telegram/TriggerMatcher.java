@@ -51,7 +51,7 @@ public class TriggerMatcher {
         }
         String[] words = text.toLowerCase(Locale.ROOT).split(" ");
         for (String word : words) {
-            if (word.equals(botName.toLowerCase(Locale.ROOT))) {
+            if (word.replaceAll("[^a-zA-Z]", "").equals(botName.toLowerCase(Locale.ROOT))) {
                 return true;
             }
         }
