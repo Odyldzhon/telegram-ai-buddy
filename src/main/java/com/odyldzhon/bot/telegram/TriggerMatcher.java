@@ -49,9 +49,10 @@ public class TriggerMatcher {
         if (text == null || botName == null || botName.isBlank()) {
             return false;
         }
-        String[] words = text.toLowerCase(Locale.ROOT).split(" ");
+        String normalizedName = botName.toLowerCase(Locale.ROOT);
+        String[] words = text.toLowerCase(Locale.ROOT).split("\\s+");
         for (String word : words) {
-            if (word.replaceAll("[^a-zA-Z]", "").equals(botName.toLowerCase(Locale.ROOT))) {
+            if (word.replaceAll("[^\\p{L}\\p{N}]", "").equals(normalizedName)) {
                 return true;
             }
         }
