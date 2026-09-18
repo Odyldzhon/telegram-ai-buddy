@@ -36,6 +36,7 @@ spring:
             google-search-retrieval: true
             max-output-tokens: 10000
             include-server-side-tool-invocations: true
+            thinking-level: high
         embedding:
           api-key: "${GEMINI_API_KEY}"
           text:
