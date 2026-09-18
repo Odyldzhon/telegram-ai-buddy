@@ -55,7 +55,10 @@ public class AssistantConversation {
     }
 
     public String dailyJoke() {
-        return askAi("This is scheduled trigger to post a joke to telegram group. Please provide one");
+        return askAi("""
+                        This is scheduled trigger to post a joke to telegram group. 
+                        Make joke based on news and current events. Keep it short and funny.
+                        """);
     }
 
     public String newsDigest(LocalDate today) {
@@ -64,6 +67,18 @@ public class AssistantConversation {
                 Use network search abilities to view important news the last 24 hours (as of %s) and post a digest to the Telegram chat.
                 Cover financial, technological, and politically important news from reputable sources.
                 Make sure that you not fetch news from the cache or outdated information.
+                Lookup for funny news as well.
+                Add in the end financial info:
+                - EUR to USD exchange rate
+                - UAH to USD exchange rate
+                - PLN to USD exchange rate
+                - BTC to USD exchange rate
+                - SP500 index value
+                - Nasdaq index value
+                - Gold price per ounce
+                - Oil price per barrel
+                - IMD AI Safety clock
+                - Doomsday clock
 
                 Rules:
                 - Keep it conversational; length can vary depending on how many important items there are.
