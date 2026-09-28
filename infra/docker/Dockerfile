@@ -15,7 +15,7 @@ RUN --mount=type=cache,target=/root/.m2 \
     mvn -B -q -DskipTests package
 
 # ─── Stage 2: minimal runtime image ─────────────────────────────────────────
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 WORKDIR /app
 
 # Run as non-root
