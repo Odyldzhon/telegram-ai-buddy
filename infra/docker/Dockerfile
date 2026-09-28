@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 # ─── Stage 1: build the fat-JAR with Maven ──────────────────────────────────
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3.9.16-eclipse-temurin-25 AS build
 WORKDIR /workspace
 
 # Cache dependencies first for faster incremental builds
