@@ -68,15 +68,15 @@ public class AssistantConversation {
                 Cover financial, technological, and politically important news from reputable sources.
                 Make sure that you not fetch news from the cache or outdated information.
                 Lookup for funny news as well.
-                Add in the end financial info:
-                - EUR to USD exchange rate
-                - UAH to USD exchange rate
-                - PLN to USD exchange rate
+                Add in the end financial info but as table or at least with clear formatting:
+                - USD to EUR exchange rate
+                - USD to UAH exchange rate
+                - USD to PLN exchange rate
                 - BTC to USD exchange rate
-                - SP500 index value
-                - Nasdaq index value
-                - Gold price per ounce
-                - Oil price per barrel
+                - SP500 index value change in percentage (weekly and daily)
+                - Nasdaq index value change in percentage (weekly and daily)
+                - Gold price per ounce change in percentage (weekly and daily)
+                - Oil price per barrel change in percentage (weekly and daily)
                 - IMD AI Safety clock
                 - Doomsday clock
 
