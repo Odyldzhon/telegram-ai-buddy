@@ -64,25 +64,24 @@ public class AssistantConversation {
     public String newsDigest(LocalDate today) {
         return askAi("""
                 This is scheduled trigger to post a news to telegram group.
-                Use network search abilities to view important news the last 24 hours (as of %s) and post a digest to the Telegram chat.
-                Cover financial, technological, and politically important news from reputable sources.
+                Use network search abilities to view important info the last 24 hours (as of %s) and post a digest to the Telegram chat.
+                The events should happened in the last 24h hours, not the publication date of the articles. Except it's kind of analysis for previous events.
+                Cover financial, technological, and politically important news, if source is not reliable, mention it.
                 Make sure that you not fetch news from the cache or outdated information.
                 Lookup for funny news as well.
-                Add in the end financial info but as table or at least with clear formatting:
-                - USD to EUR exchange rate
-                - USD to UAH exchange rate
-                - USD to PLN exchange rate
-                - BTC to USD exchange rate
+                Add in the end financial info but format is well and keep it short, maybe use icons/emojis to make it more readable. Include the following financial info:
+                - USD to EUR exchange rate (weekly and daily)
+                - USD to UAH exchange rate (weekly and daily)
+                - USD to PLN exchange rate (weekly and daily)
+                - BTC to USD exchange rate (weekly and daily)
                 - SP500 index value change in percentage (weekly and daily)
                 - Nasdaq index value change in percentage (weekly and daily)
                 - Gold price per ounce change in percentage (weekly and daily)
                 - Oil price per barrel change in percentage (weekly and daily)
-                - IMD AI Safety clock
-                - Doomsday clock
 
                 Rules:
                 - Keep it conversational; length can vary depending on how many important items there are.
-                - For each item, mention why it matters, not just the headline.
+                - For each item, mention why it matters, not just the headline if it's not obvious.
                 - Links are optional; include them only when they add clear value.
                 """.formatted(today));
     }
