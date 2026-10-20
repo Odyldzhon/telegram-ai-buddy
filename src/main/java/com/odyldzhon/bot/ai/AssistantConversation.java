@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -26,14 +26,17 @@ public class AssistantConversation {
     private final MessageStore messageStore;
     private final ChatClient assistantChatClient;
     private final Duration retryBackoff;
+    private final AiCallLock aiCallLock;
 
     public AssistantConversation(
             MessageStore messageStore,
             @Qualifier(ChatClientConfig.ASSISTANT) ChatClient assistantChatClient,
-            AssistantProperties properties) {
+            AssistantProperties properties,
+            AiCallLock aiCallLock) {
         this.messageStore = messageStore;
         this.assistantChatClient = assistantChatClient;
         this.retryBackoff = properties.retryBackoff();
+        this.aiCallLock = aiCallLock;
     }
 
     public String reply(String author, String userMessage) {
@@ -54,36 +57,16 @@ public class AssistantConversation {
                 """.formatted(RECENT_CONTEXT_MESSAGES, recentContext, authorForPrompt, userMessage));
     }
 
-    public String dailyJoke() {
+    public String scheduledTask(String name, String taskPrompt, ZonedDateTime now) {
+        log.info("Scheduled task '{}' due – calling AI", name);
         return askAi("""
-                        This is scheduled trigger to post a joke to telegram group. 
-                        Make joke based on news and current events. Keep it short and funny.
-                        """);
-    }
+                Scheduled task: %s
+                Current time: %s
 
-    public String newsDigest(LocalDate today) {
-        return askAi("""
-                This is scheduled trigger to post a news to telegram group.
-                Use network search abilities to view important info the last 24 hours (as of %s) and post a digest to the Telegram chat.
-                The events should happened in the last 24h hours, not the publication date of the articles. Except it's kind of analysis for previous events.
-                Cover financial, technological, and politically important news, if source is not reliable, mention it.
-                Make sure that you not fetch news from the cache or outdated information.
-                Lookup for funny news as well.
-                Add in the end financial info but format is well and keep it short, maybe use icons/emojis to make it more readable. Include the following financial info:
-                - USD to EUR exchange rate (weekly and daily)
-                - USD to UAH exchange rate (weekly and daily)
-                - USD to PLN exchange rate (weekly and daily)
-                - BTC to USD exchange rate (weekly and daily)
-                - SP500 index value change in percentage (weekly and daily)
-                - Nasdaq index value change in percentage (weekly and daily)
-                - Gold price per ounce change in percentage (weekly and daily)
-                - Oil price per barrel change in percentage (weekly and daily)
-
-                Rules:
-                - Keep it conversational; length can vary depending on how many important items there are.
-                - For each item, mention why it matters, not just the headline if it's not obvious.
-                - Links are optional; include them only when they add clear value.
-                """.formatted(today));
+                This is an automated trigger, not a message from a chat member.
+                Process the task above and write the message to post to the Telegram group.
+                Reply with the message text only; do not mention that it is a scheduled task.
+                """.formatted(taskPrompt, now));
     }
 
     public String proactiveHistoryReply(Instant since, int maxMessages, String botName) {
@@ -111,6 +94,10 @@ public class AssistantConversation {
     }
 
     private String askAi(String prompt) {
+        return aiCallLock.run(() -> askAiWithRetries(prompt));
+    }
+
+    private String askAiWithRetries(String prompt) {
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
                 String reply = assistantChatClient.prompt()

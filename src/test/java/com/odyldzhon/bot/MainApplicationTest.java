@@ -3,6 +3,7 @@ package com.odyldzhon.bot;
 import com.odyldzhon.bot.configuration.BotRegistrar;
 import com.odyldzhon.bot.configuration.ChatClientConfig;
 import com.odyldzhon.bot.persistence.MessageStore;
+import com.odyldzhon.bot.persistence.repository.ScheduledTaskRepository;
 import com.odyldzhon.bot.telegram.TelegramBot;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,9 @@ class MainApplicationTest {
 
     @MockitoBean
     private JdbcTemplate jdbcTemplate;
+
+    @MockitoBean
+    private ScheduledTaskRepository scheduledTaskRepository;
 
     @MockitoBean(name = ChatClientConfig.ASSISTANT)
     private ChatClient assistantChatClient;

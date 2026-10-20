@@ -177,40 +177,6 @@ class ScheduledAiTriggerServiceTest {
         verify(telegramBot, never()).sendText(anyString(), anyString());
     }
 
-    @Test
-    @DisplayName("Sends a daily joke to the configured chat ID")
-    void sendDailyJoke_sendsJokeToConfiguredChatId() {
-        // Given
-        ScheduledAiTriggerService service = service(properties(true, "42"));
-        String joke = "Why don't scientists trust atoms? Because they make up everything!";
-        when(assistantConversation.dailyJoke()).thenReturn(joke);
-        when(telegramBot.sendText("42", joke)).thenReturn(true);
-
-        // When
-        service.sendDailyJoke();
-
-        // Then
-        verify(telegramBot).sendText("42", joke);
-    }
-
-    @Test
-    @DisplayName("Sends a daily news digest for today's date in the configured zone")
-    void sendNews_sendsDigestForToday() {
-        // Given
-        ScheduledAiTriggerService service = service(properties(true, "42"));
-        String digest = "Today's headlines...";
-        when(assistantConversation.newsDigest(any())).thenReturn(digest);
-        when(telegramBot.sendText("42", digest)).thenReturn(true);
-
-        // When
-        service.sendNews();
-
-        // Then
-        verify(assistantConversation).newsDigest(LocalDateTime.parse("2026-04-28T09:00:00")
-                .atZone(UKRAINE_ZONE).toLocalDate());
-        verify(telegramBot).sendText("42", digest);
-    }
-
     private ScheduledAiTriggerService service(AiTriggerProperties properties) {
         return service(properties, DEFAULT_CLOCK);
     }
@@ -233,8 +199,6 @@ class ScheduledAiTriggerServiceTest {
     private static AiTriggerProperties properties(boolean enabled, String chatId, Duration minDelay, Duration maxDelay) {
         return new AiTriggerProperties(
                 enabled,
-                true,
-                true,
                 false,
                 chatId,
                 Duration.ofMinutes(30),

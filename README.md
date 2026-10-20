@@ -64,14 +64,20 @@ Key components (`src/main/java/com/odyldzhon/bot/`):
 |------------------|---------------------------------------------------------------------------------------------|
 | `telegram/`      | `TelegramBot` (long polling), `TriggerMatcher` (mention / reply / idle), `TypingIndicator`. |
 | `ai/`            | `AssistantConversation`, `ImageDescriber`, `DatabaseTools` (Spring AI tool functions).      |
-| `service/`       | `ScheduledAiTriggerService` — proactive replies, daily joke, news digest, quiet hours.      |
-| `persistence/`   | `ChatMessageEntity`, `ChatMessageRepository`, `MessageStore` (recent + similarity search).  |
+| `service/`       | `ScheduledAiTriggerService` (proactive replies, quiet hours), `ScheduledTaskRunner` / `ScheduledTaskService` (DB-defined cron tasks, e.g. joke, news). |
+| `persistence/`   | `ChatMessageEntity`, `ScheduledTaskEntity`, repositories, `MessageStore` (recent + similarity search). |
 | `properties/`    | Type-safe `@ConfigurationProperties` records (`BotProperties`, `AiTriggerProperties`, …).   |
 | `configuration/` | `ChatClientConfig`, `SchedulingConfig`, `BotRegistrar` (registers the long-polling bot).    |
 
-Database schema: `src/main/resources/db/schema.sql` — single `chat_message`
+Database schema: `src/main/resources/db/schema.sql` — `chat_message`
 table with `vector(1536)` embeddings, an HNSW cosine-similarity index, and
-indexes on `created_at` / `(author, created_at)`.
+indexes on `created_at` / `(author, created_at)`; plus `scheduled_task`
+(unique indexed `name`, `prompt`, Spring 6-field `schedule` cron evaluated in
+`BOT_AI_TRIGGER_TIME_ZONE`, `status` ENABLED/DISABLED, `last_execution_at`),
+seeded with `daily-joke` (08:00) and `daily-news` (08:05). The model manages
+tasks from chat via the `ScheduledTaskTools` tool functions. The script is
+idempotent and is applied by the app on every startup (`spring.sql.init`), so
+existing databases are migrated automatically.
 
 ---
 
@@ -174,8 +180,6 @@ type-safe records under `bot.*` and `spring.ai.*`.
 | Variable                                      | Purpose                                                                            |
 |-----------------------------------------------|------------------------------------------------------------------------------------|
 | `BOT_AI_TRIGGER_ENABLED`                      | Master switch for the proactive scheduler (`start()`).                             |
-| `BOT_AI_TRIGGER_SEND_DAILY_JOKE_ENABLED`      | Toggle the 08:00 daily joke job.                                                   |
-| `BOT_AI_TRIGGER_SEND_NEWS_ENABLED`            | Toggle the 08:05 daily news digest job.                                            |
 | `BOT_AI_TRIGGER_CHAT_ID`                      | The single chat id the bot is allowed to listen to and post in.                    |
 | `BOT_AI_TRIGGER_HISTORY_WINDOW`               | How far back proactive replies look (e.g. `3h`).                                   |
 | `BOT_AI_TRIGGER_MIN_DELAY` / `…_MAX_DELAY`    | Random delay range between proactive reactions (e.g. `2h` / `4h`).                 |

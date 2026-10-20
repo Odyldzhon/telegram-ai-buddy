@@ -76,9 +76,7 @@ class PropertiesTest {
         // Given
         AiTriggerProperties properties = new AiTriggerProperties(
                 true,
-                true,
-                true,
-                 false,
+                false,
                 "42",
                 Duration.ofHours(2),
                 Duration.ofMinutes(5),
