@@ -133,7 +133,7 @@ class TriggerMatcherTest {
         MutableClock clock = new MutableClock(T0);
         BotProperties botProps = new BotProperties(BOT_USERNAME, "123456:test-token", BOT_NAME, "English");
         AiTriggerProperties aiProps = new AiTriggerProperties(
-                false, false, false, true, "1",
+                false, true, "1",
                 Duration.ofMinutes(30), Duration.ofMinutes(1), Duration.ofMinutes(1),
                 30, ZoneId.of("UTC"), Duration.ofHours(2));
         TriggerMatcher matcher = new TriggerMatcher(botProps, aiProps, clock);
@@ -150,7 +150,7 @@ class TriggerMatcherTest {
     private static TriggerMatcher matcher(String botName, Duration idleThreshold, Clock clock) {
         BotProperties botProps = new BotProperties(BOT_USERNAME, "123456:test-token", botName, "English");
         AiTriggerProperties aiProps = new AiTriggerProperties(
-                false, false, false, false, "1",
+                false, false, "1",
                 Duration.ofMinutes(30), Duration.ofMinutes(1), Duration.ofMinutes(1),
                 30, ZoneId.of("UTC"), idleThreshold);
         return new TriggerMatcher(botProps, aiProps, clock);

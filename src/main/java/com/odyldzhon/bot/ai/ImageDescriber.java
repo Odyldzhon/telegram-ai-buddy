@@ -28,6 +28,7 @@ public class ImageDescriber {
 
     /** Field/parameter name matches bean name {@link ChatClientConfig#IMAGE}. */
     private final ChatClient imageChatClient;
+    private final AiCallLock aiCallLock;
 
     /**
      * @param bytes    raw image bytes
@@ -48,10 +49,10 @@ public class ImageDescriber {
                     ? "Describe this image."
                     : "Describe this image. User sign: " + caption;
 
-            return IMAGE_PREFIX + imageChatClient.prompt()
+            return IMAGE_PREFIX + aiCallLock.run(() -> imageChatClient.prompt()
                     .user(u -> u.text(userText).media(media))
                     .call()
-                    .content();
+                    .content());
         } catch (Exception e) {
             log.error("Image description failed: {}", e.getMessage(), e);
             return null;

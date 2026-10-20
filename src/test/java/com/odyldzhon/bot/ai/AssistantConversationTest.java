@@ -30,7 +30,8 @@ class AssistantConversationTest {
     @Mock private ChatClient.CallResponseSpec callResponseSpec;
 
     private AssistantConversation newConversation() {
-        return new AssistantConversation(messageStore, chatClient, new AssistantProperties(Duration.ZERO, "Test persona"));
+        return new AssistantConversation(messageStore, chatClient, new AssistantProperties(Duration.ZERO, "Test persona"),
+                new AiCallLock());
     }
 
     @Test

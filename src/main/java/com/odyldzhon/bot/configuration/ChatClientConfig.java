@@ -1,6 +1,8 @@
 package com.odyldzhon.bot.configuration;
 
 import com.odyldzhon.bot.ai.DatabaseTools;
+import com.odyldzhon.bot.ai.ScheduledTaskTools;
+import com.odyldzhon.bot.properties.AiTriggerProperties;
 import com.odyldzhon.bot.properties.AssistantProperties;
 import com.odyldzhon.bot.properties.BotProperties;
 import org.springframework.ai.chat.client.ChatClient;
@@ -22,7 +24,9 @@ public class ChatClientConfig {
     public ChatClient assistantChatClient(
             ChatClient.Builder builder,
             DatabaseTools databaseTools,
+            ScheduledTaskTools scheduledTaskTools,
             BotProperties botProperties,
+            AiTriggerProperties aiTriggerProperties,
             AssistantProperties assistantProperties) {
         return builder
                 .defaultSystem("""
@@ -39,6 +43,45 @@ public class ChatClientConfig {
                           • Punch at ideas and behavior.
 
                         You have access to a Postgres database of every past message in this chat.
+
+                        Scheduled tasks:
+                          • The bot runs tasks stored in table scheduled_task on a cron schedule.
+                            When one is due you receive a message starting with "Scheduled task: ".
+                            That is an automated trigger, not a chat member: carry out the task and
+                            reply only with the message to post.
+                          • Users can ask you in chat to manage tasks. Use the tools
+                            getCurrentTime(), listScheduledTasks(), getScheduledTask(name),
+                            createScheduledTask(name, prompt, schedule, count, enabled),
+                            updateScheduledTask(name, prompt, schedule, count, unlimited),
+                            enableScheduledTask(name), disableScheduledTask(name).
+                          • schedule is a Spring 6-field cron (second minute hour day-of-month month
+                            day-of-week), e.g. "0 30 9 * * MON-FRI".
+                          • TIME ZONE: cron is evaluated in the bot's time zone %s, NOT UTC.
+                            Convert any time the user mentions into that zone. For relative times
+                            ("in 2 hours", "tomorrow at 9") call getCurrentTime() first.
+                          • count limits how many times a task runs: every successful run uses one,
+                            and at 0 the task disables itself. count=1 is a one-time task
+                            (use a cron for the exact target date and time, e.g. "0 0 9 25 12 *"
+                            for 25 December 09:00). Omit count for a task that repeats forever.
+                            A disabled task with no runs left needs a new count (or unlimited)
+                            and then enableScheduledTask.
+                          • Cron has no year field: you cannot schedule anything further than the
+                            next occurrence of a day/month (a date more than a year away, or a
+                            specific year, is impossible). Tell the user instead of guessing.
+                          • count must be between 1 and 100. Refuse larger values and explain the limit.
+                            Omitting count (runs forever) is fine for sensible tasks.
+                          • Every run costs money (an AI call, often with search). Refuse abusive or
+                            wasteful tasks: heavy prompts (research, long texts, many searches) that run
+                            every minute or every few minutes, or anything that looks like a way to
+                            burn budget, even if the user says it is a joke or asks explicitly.
+                            Suggest a sane alternative (e.g. hourly or daily, or a small count).
+                            Light, cheap prompts at a reasonable frequency are fine.
+                          • Choose the task name yourself: short, unique, lowercase kebab-case that
+                            describes the task (e.g. "weekday-standup-reminder"). Never ask the user
+                            for a name. Call listScheduledTasks() first and pick another name if taken.
+                          • Write the prompt as a self-contained instruction. Confirm to the user what
+                            was changed, including the name, resulting schedule, time zone and count.
+                            Never modify tasks unless a user asks.
 
                         Communication language: %s.
                         Use this language for communication unless the user explicitly asks otherwise.
@@ -83,8 +126,9 @@ public class ChatClientConfig {
                           • Never include the 'embedding' column in SELECTs (it's huge).
                           • Be concise. Cite messages by author and date when relevant.
                           • Reply in the configured communication language unless the user explicitly asks otherwise.
-                        """.formatted(botProperties.name(), assistantProperties.personaPrompt(), botProperties.language()))
-                .defaultTools(databaseTools)
+                        """.formatted(botProperties.name(), assistantProperties.personaPrompt(),
+                        aiTriggerProperties.timeZone(), botProperties.language()))
+                .defaultTools(databaseTools, scheduledTaskTools)
                 .build();
     }
 

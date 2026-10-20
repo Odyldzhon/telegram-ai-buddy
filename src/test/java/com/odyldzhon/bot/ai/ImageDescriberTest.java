@@ -31,7 +31,7 @@ class ImageDescriberTest {
     @DisplayName("Prefixes successful image descriptions for storage")
     void describe_validImage_returnsPrefixedDescription() {
         // Given
-        ImageDescriber describer = new ImageDescriber(imageChatClient);
+        ImageDescriber describer = new ImageDescriber(imageChatClient, new AiCallLock());
         when(imageChatClient.prompt()).thenReturn(requestSpec);
         when(requestSpec.user(any(Consumer.class))).thenReturn(requestSpec);
         when(requestSpec.call()).thenReturn(callResponseSpec);
@@ -49,7 +49,7 @@ class ImageDescriberTest {
     @DisplayName("Uses JPEG as the default MIME type when none is provided")
     void describe_nullMimeType_returnsPrefixedDescription() {
         // Given
-        ImageDescriber describer = new ImageDescriber(imageChatClient);
+        ImageDescriber describer = new ImageDescriber(imageChatClient, new AiCallLock());
         when(imageChatClient.prompt()).thenReturn(requestSpec);
         when(requestSpec.user(any(Consumer.class))).thenReturn(requestSpec);
         when(requestSpec.call()).thenReturn(callResponseSpec);
@@ -66,7 +66,7 @@ class ImageDescriberTest {
     @DisplayName("Returns null when image description fails before the AI call")
     void describe_invalidMimeType_returnsNull() {
         // Given
-        ImageDescriber describer = new ImageDescriber(imageChatClient);
+        ImageDescriber describer = new ImageDescriber(imageChatClient, new AiCallLock());
 
         // When
         String result = describer.describe(new byte[]{1}, "not a mime type", "caption");

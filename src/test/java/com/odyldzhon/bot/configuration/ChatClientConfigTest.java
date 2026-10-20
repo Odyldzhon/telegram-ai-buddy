@@ -1,6 +1,8 @@
 package com.odyldzhon.bot.configuration;
 
 import com.odyldzhon.bot.ai.DatabaseTools;
+import com.odyldzhon.bot.ai.ScheduledTaskTools;
+import com.odyldzhon.bot.properties.AiTriggerProperties;
 import com.odyldzhon.bot.properties.AssistantProperties;
 import com.odyldzhon.bot.properties.BotProperties;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +30,9 @@ class ChatClientConfigTest {
     private DatabaseTools databaseTools;
 
     @Mock
+    private ScheduledTaskTools scheduledTaskTools;
+
+    @Mock
     private ChatClient chatClient;
 
     @Test
@@ -36,18 +41,25 @@ class ChatClientConfigTest {
         // Given
         ChatClientConfig config = new ChatClientConfig();
         when(builder.defaultSystem(anyString())).thenReturn(builder);
-        when(builder.defaultTools(databaseTools)).thenReturn(builder);
+        when(builder.defaultTools(databaseTools, scheduledTaskTools)).thenReturn(builder);
         when(builder.build()).thenReturn(chatClient);
 
         // When
-        ChatClient result = config.assistantChatClient(builder, databaseTools, botProperties(), assistantProperties());
+        ChatClient result = config.assistantChatClient(
+                builder, databaseTools, scheduledTaskTools, botProperties(), aiTriggerProperties(),
+                assistantProperties());
 
         // Then
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
         verify(builder).defaultSystem(promptCaptor.capture());
-        verify(builder).defaultTools(databaseTools);
+        verify(builder).defaultTools(databaseTools, scheduledTaskTools);
         assertThat(promptCaptor.getValue())
                 .contains("Test persona from environment")
+                .contains("Scheduled task: ")
+                .contains("NOT UTC")
+                .contains("between 1 and 100")
+                .contains("no year field")
+                .contains("Europe/Kyiv")
                 .contains("Communication language: English")
                 .doesNotContain("COMMON_PERSONA_PROMPT");
         assertThat(result).isSameAs(chatClient);
@@ -76,6 +88,11 @@ class ChatClientConfigTest {
 
     private static BotProperties botProperties() {
         return new BotProperties("test_bot", "123456:test-token", "Lebowski", "English");
+    }
+
+    private static AiTriggerProperties aiTriggerProperties() {
+        return new AiTriggerProperties(false, false, "42", Duration.ofMinutes(30), Duration.ofMinutes(1),
+                Duration.ofMinutes(1), 30, java.time.ZoneId.of("Europe/Kyiv"), Duration.ofHours(2));
     }
 
     private static AssistantProperties assistantProperties() {

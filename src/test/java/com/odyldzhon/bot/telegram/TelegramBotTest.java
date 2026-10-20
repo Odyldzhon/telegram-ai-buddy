@@ -383,8 +383,6 @@ class TelegramBotTest {
         return new AiTriggerProperties(
                 false,
                 false,
-                false,
-                false,
                 ALLOWED_CHAT_ID,
                 Duration.ofMinutes(30),
                 Duration.ofMinutes(1),

@@ -5,8 +5,6 @@ bot:
   language: English
   ai-trigger:
     enabled: false
-    send-daily-joke-enabled: false
-    send-news-enabled: false
     reply-to-any: false
     chat-id: "42"
     history-window: PT30M

@@ -9,8 +9,6 @@ bot:
   # the last chat that sent it a message after startup.
   ai-trigger:
     enabled: "${BOT_AI_TRIGGER_ENABLED}"
-    send-daily-joke-enabled: "${BOT_AI_TRIGGER_SEND_DAILY_JOKE_ENABLED}"
-    send-news-enabled: "${BOT_AI_TRIGGER_SEND_NEWS_ENABLED}"
     reply-to-any: "${BOT_AI_TRIGGER_REPLY_TO_ANY}"
     chat-id: "${BOT_AI_TRIGGER_CHAT_ID}"
     history-window: "${BOT_AI_TRIGGER_HISTORY_WINDOW}"
@@ -31,18 +29,16 @@ spring:
       genai:
         api-key: "${GEMINI_API_KEY}"
         chat:
-          options:
-            model: gemini-3.8-flash
-            google-search-retrieval: true
-            max-output-tokens: 10000
-            include-server-side-tool-invocations: true
-            thinking-level: high
+          google-search-retrieval: true
+          model: gemini-4-argon
+          max-output-tokens: 10000
+          include-server-side-tool-invocations: true
+          thinking-level: high
         embedding:
           api-key: "${GEMINI_API_KEY}"
           text:
-            options:
-              model: gemini-embedding-2
-              dimensions: 1536
+            dimensions: 1536
+            model: gemini-embedding-2
 
   # ─── Postgres + pgvector ─────────────────────────────────────────────────────
   datasource:
@@ -54,6 +50,11 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+  # schema.sql is idempotent; running it on every start migrates existing databases
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema.sql
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
 logging:
